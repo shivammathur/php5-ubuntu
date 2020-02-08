@@ -1,0 +1,57 @@
+name: Test
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    name: Test PHP-${{ matrix.php-versions }} on ${{ matrix.operating-system }}
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ubuntu-18.04, ubuntu-16.04]        
+        php-versions: ['5.3', '5.4', '5.5']
+    steps:        
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install PHP
+        run: |
+          ls
+          cd php-${{ matrix.php-versions }} || exit
+          sudo chmod a+x *.sh
+          ./install.sh
+          ./post-install.sh
+      - name: Test versions and extensions
+        run: |
+          php$ver -v | head -n 1
+          php-cgi$ver -v | head -n 1
+          php-config$ver --version
+          phpize$ver -v
+          php$ver -m
+          pecl -V
+        env:
+          ver: ${{ matrix.php-versions }}
+  release:
+    name: Update dist
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Package and ship
+        run: |
+          for v in 5.3 5.4 5.5; do
+            sudo XZ_OPT=-9 tar cfJ php-$v.tar.xz php-$v
+            shopt -s nullglob
+            for f in php-$v.tar.xz; do
+              sha256sum "$f" >"${f}".sha256sum.txt
+            done
+            curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X DELETE https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/php-$v.tar.xz || true
+            curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php-$v.tar.xz https://api.bintray.com/content/shivammathur/php/"$v"-linux/"$v"/php-$v.tar.xz || true
+            curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X POST https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/"$v"-linux/"$v"/publish || true
+          done
+        env:
+          BINTRAY_KEY: ${{ secrets.bintray_key }}
+          BINTRAY_USER: shivammathur
+          BINTRAY_REPO: php
