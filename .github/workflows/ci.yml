@@ -30,6 +30,7 @@ jobs:
           phpize$ver -v
           php$ver -m
           pecl -V
+          curl -V
         env:
           ver: ${{ matrix.php-versions }}
   release:
