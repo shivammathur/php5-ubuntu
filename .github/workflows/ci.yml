@@ -25,12 +25,12 @@ jobs:
       - name: Test versions and extensions
         run: |
           php$ver -v | head -n 1
-          php-cgi$ver -v | head -n 1
           php-config$ver --version
           phpize$ver -v
           php$ver -m
           pecl -V
           curl -V
+          php$ver -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
         env:
           ver: ${{ matrix.php-versions }}
   release:
@@ -43,7 +43,7 @@ jobs:
       - name: Package and ship
         run: |
           for v in 5.3 5.4 5.5; do
-            sudo XZ_OPT=-9 tar cfJ php-$v.tar.xz php-$v
+            sudo XZ_OPT=-e9 tar cfJ php-$v.tar.xz php-$v
             shopt -s nullglob
             for f in php-$v.tar.xz; do
               sha256sum "$f" >"${f}".sha256sum.txt

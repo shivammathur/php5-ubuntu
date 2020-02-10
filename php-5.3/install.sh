@@ -1,11 +1,5 @@
 dpkg_install="sudo DEBIAN_FRONTEND=noninteractive dpkg -i --force-conflicts"
-sudo mkdir -p /var/run /run/php
+sudo mkdir -p /var/run /run/php ~/php
 $dpkg_install ./deps/*.deb
-$dpkg_install ./*.deb
-for tool in php5 php5-cgi php-config5 phpize5; do
-  if [ -f /usr/bin/"$tool" ]; then
-    tool_name=${tool/5/}
-    sudo cp /usr/bin/"$tool" /usr/bin/"$tool_name"5.3
-    sudo update-alternatives --install /usr/bin/"$tool_name" "$tool_name" /usr/bin/"$tool_name"5.3 50
-  fi
-done
+sudo tar xJf ./php-5.3.29.tar.xz -C ~/php
+sudo ln -sf ~/php/5.3.29/etc/php.ini /etc/php.ini
