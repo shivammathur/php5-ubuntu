@@ -45,3 +45,4 @@ curl -sSL https://github.com/shivammathur/php5-ubuntu/releases/latest/download/i
 - [PhpRedis](https://github.com/phpredis/phpredis "Redis PHP extension")
 - [Xdebug](https://github.com/xdebug/xdebug "Xdebug PHP extension")
 - [Zend OPCache](https://github.com/zendtech/ZendOptimizerPlus "Zend OPCache extension")
+- [Zstandard](https://github.com/facebook/zstd "Zstandard compression algorithm")

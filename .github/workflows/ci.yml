@@ -42,10 +42,16 @@ jobs:
         uses: actions/checkout@v2
       - name: Package and ship
         run: |
+          curl -sSLO http://archive.ubuntu.com/ubuntu/pool/universe/libz/libzstd/zstd_1.4.4+dfsg-3_amd64.deb
+          sudo DEBIAN_FRONTEND=noninteractive dpkg -i --force-conflicts zstd_1.4.4+dfsg-3_amd64.deb
+          zstd -V
           for v in 5.3 5.4 5.5; do
-            sudo XZ_OPT=-e9 tar cfJ php-$v.tar.xz php-$v
+            sudo XZ_OPT=-0 tar cfJ php-$v.tar.xz php-$v
+            sudo tar cf - php-$v | zstd --fast=7 > php-$v.tar.zst
             curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X DELETE https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/php-$v.tar.xz || true
+            curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X DELETE https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/php-$v.tar.zst || true
             curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php-$v.tar.xz https://api.bintray.com/content/shivammathur/php/"$v"-linux/"$v"/php-$v.tar.xz || true
+            curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php-$v.tar.zst https://api.bintray.com/content/shivammathur/php/"$v"-linux/"$v"/php-$v.tar.zst || true
             curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X POST https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/"$v"-linux/"$v"/publish || true
           done
         env:
