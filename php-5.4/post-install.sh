@@ -18,4 +18,4 @@ sudo php5enmod redis
 sudo php5enmod xdebug
 echo "deb $dotdeb wheezy all" | sudo tee /etc/apt/sources.list.d/dotdeb-ubuntu-php-"$(lsb_release -s -c)".list
 curl -sSLO https://www.dotdeb.org/dotdeb.gpg
-sudo DEBIAN_FRONTEND=noninteractive apt-key add dotdeb.gpg
+sudo DEBIAN_FRONTEND=noninteractive apt-key add dotdeb.gpg >/dev/null

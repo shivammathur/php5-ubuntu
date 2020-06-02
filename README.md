@@ -29,7 +29,7 @@ curl -sSL https://github.com/shivammathur/php5-ubuntu/releases/latest/download/i
 
 - The code and documentation in this project is licensed under the [MIT license](LICENSE "License for shivammathur/php5-ubuntu").
 - The PHP packages except for PHP 5.3 have been sourced from [Dotdeb Releases](https://www.dotdeb.org/ "Dotdeb PHP releases").
-- The library binaries have been sourced from [Ubuntu](https://packages.ubuntu.com/ "Ubuntu Packages Repository") package archive and distributed unmodified.
+- The library binaries have been sourced from [Ubuntu](https://packages.ubuntu.com/ "Ubuntu Packages Repository") package archive.
 - This project has multiple [dependencies](#dependencies "Dependencies of shivammathur/php5-ubuntu"). Their licenses can be found in their respective repositories.
 
 ## Dependencies
