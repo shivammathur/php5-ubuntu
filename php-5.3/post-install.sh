@@ -8,4 +8,4 @@ for tool in pear peardev pecl php phar phar.phar php-cgi php-config phpize; do
 done
 ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
 sudo chmod 777 "$ini_file"
-echo "date.timezone=UTC" >>"$ini_file"
+echo -e "date.timezone=UTC\nmemory_limit=-1" >>"$ini_file"
