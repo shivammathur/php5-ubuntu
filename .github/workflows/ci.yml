@@ -33,7 +33,7 @@ jobs:
           php$ver -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
         env:
           ver: ${{ matrix.php-versions }}
-  release:
+  build:
     name: Update dist
     needs: test
     runs-on: ubuntu-latest
@@ -45,6 +45,7 @@ jobs:
           curl -sSLO http://archive.ubuntu.com/ubuntu/pool/universe/libz/libzstd/zstd_1.4.4+dfsg-3_amd64.deb
           sudo DEBIAN_FRONTEND=noninteractive dpkg -i --force-conflicts zstd_1.4.4+dfsg-3_amd64.deb
           zstd -V
+          mkdir builds
           for v in 5.3 5.4 5.5; do
             sudo XZ_OPT=-0 tar cfJ php-$v.tar.xz php-$v
             sudo tar cf - php-$v | zstd --fast=7 > php-$v.tar.zst
@@ -53,8 +54,37 @@ jobs:
             curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php-$v.tar.xz https://api.bintray.com/content/shivammathur/php/"$v"-linux/"$v"/php-$v.tar.xz || true
             curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php-$v.tar.zst https://api.bintray.com/content/shivammathur/php/"$v"-linux/"$v"/php-$v.tar.zst || true
             curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X POST https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/"$v"-linux/"$v"/publish || true
+            mv php-$v.tar.* ./builds/
           done
         env:
           BINTRAY_KEY: ${{ secrets.bintray_key }}
           BINTRAY_USER: shivammathur
           BINTRAY_REPO: php
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: builds
+          path: builds
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+      - run: mkdir builds
+      - uses: actions/download-artifact@v2
+        with:
+          path: builds
+      - name: Release
+        run: |
+          set -x
+          curl -sLO https://github.com/shivammathur/php5-ubuntu/releases/latest/download/install.sh
+          assets=()
+          for asset in ./builds/*/*; do
+            assets+=("-a" "$asset")
+          done
+          assets+=("-a" "./install.sh")
+          git push -f origin :builds || true
+          hub release delete "builds" || true
+          hub release create "${assets[@]}" -m "builds" "builds"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
