@@ -28,8 +28,11 @@ jobs:
           php-config$ver --version
           phpize$ver -v
           php$ver -m
+          php-cgi -v
+          php-fpm -v
           pecl -V
           curl -V
+          sudo service php$ver-fpm status
           php$ver -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
         env:
           ver: ${{ matrix.php-versions }}

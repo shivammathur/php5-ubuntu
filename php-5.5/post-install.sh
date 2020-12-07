@@ -1,6 +1,6 @@
 v=5.5
 dotdeb=http://packages.dotdeb.org
-for tool in php$v php-cgi$v php-config$v phpize$v; do
+for tool in php$v php-cgi$v php-fpm$v php-config$v phpize$v; do
   if [ -f /usr/bin/"$tool" ]; then
     tool_name=${tool/[0-9]*/}
     sudo update-alternatives --set $tool_name /usr/bin/"$tool_name$v"
@@ -19,3 +19,4 @@ sudo php5enmod xdebug
 echo "deb $dotdeb wheezy-php55 all" | sudo tee /etc/apt/sources.list.d/dotdeb-ubuntu-php-"$(lsb_release -s -c)".list
 curl -sSLO https://www.dotdeb.org/dotdeb.gpg
 sudo DEBIAN_FRONTEND=noninteractive apt-key add dotdeb.gpg >/dev/null
+sudo service php5.5-fpm restart
