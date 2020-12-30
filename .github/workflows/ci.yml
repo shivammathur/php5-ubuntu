@@ -58,7 +58,7 @@ jobs:
         if: "contains(github.event.head_commit.message, 'build-php5.3')"
         run: |
           scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
-          for extension in amqp memcached memcache mongodb redis; do
+          for extension in apcu amqp memcached memcache mongodb mongo redis; do
             echo "extension=$extension.so" | sudo tee "$scan_dir/$extension.ini"
           done
           php -m
@@ -139,7 +139,7 @@ jobs:
         if: matrix.php-versions == '5.3'
         run: |
           scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
-          for extension in amqp memcached memcache mongodb redis; do
+          for extension in apcu amqp memcached memcache mongodb mongo redis; do
             echo "extension=$extension.so" >> "$scan_dir/$extension.ini"
           done
 
