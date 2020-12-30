@@ -1,0 +1,583 @@
+From: alanivey <alanivey@gmail.com>
+Date: 2016-10-18T03:34:14Z
+Subject: [PATCH] Allow building PHP 5.3.29 with multiple SAPI
+
+---
+diff --git a/Makefile.global b/Makefile.global
+index 3a5b1c2..7450162 100644
+--- a/Makefile.global
++++ b/Makefile.global
+@@ -13,6 +13,8 @@ all: $(all_targets)
+ 	
+ build-modules: $(PHP_MODULES) $(PHP_ZEND_EX)
+ 
++build-binaries: $(PHP_BINARIES)
++
+ libphp$(PHP_MAJOR_VERSION).la: $(PHP_GLOBAL_OBJS) $(PHP_SAPI_OBJS)
+ 	$(LIBTOOL) --mode=link $(CC) $(CFLAGS) $(EXTRA_CFLAGS) -rpath $(phptempdir) $(EXTRA_LDFLAGS) $(LDFLAGS) $(PHP_RPATHS) $(PHP_GLOBAL_OBJS) $(PHP_SAPI_OBJS) $(EXTRA_LIBS) $(ZEND_EXTRA_LIBS) -o $@
+ 	-@$(LIBTOOL) --silent --mode=install cp $@ $(phptempdir)/$@ >/dev/null 2>&1
+@@ -35,6 +37,8 @@ install-sapi: $(OVERALL_TARGET)
+ 	fi
+ 	@$(INSTALL_IT)
+ 
++install-binaries: build-binaries $(install_binary_targets)
++
+ install-modules: build-modules
+ 	@test -d modules && \
+ 	$(mkinstalldirs) $(INSTALL_ROOT)$(EXTENSION_DIR)
+diff --git a/acinclude.m4 b/acinclude.m4
+index 2681b79..605a9ba 100644
+--- a/acinclude.m4
++++ b/acinclude.m4
+@@ -194,7 +194,7 @@ dnl the path is interpreted relative to the top build-directory.
+ dnl
+ dnl which array to append to?
+ AC_DEFUN([PHP_ADD_SOURCES],[
+-  PHP_ADD_SOURCES_X($1, $2, $3, ifelse($4,cli,PHP_CLI_OBJS,ifelse($4,sapi,PHP_SAPI_OBJS,PHP_GLOBAL_OBJS)))
++  PHP_ADD_SOURCES_X($1, $2, $3, ifelse($4,sapi,PHP_SAPI_OBJS,PHP_GLOBAL_OBJS))
+ ])
+ 
+ dnl
+@@ -772,7 +772,7 @@ dnl
+ AC_DEFUN([PHP_BUILD_SHARED],[
+   PHP_BUILD_PROGRAM
+   OVERALL_TARGET=libphp[]$PHP_MAJOR_VERSION[.la]
+-  php_build_target=shared
++  php_sapi_module=shared
+   
+   php_c_pre=$shared_c_pre
+   php_c_meta=$shared_c_meta
+@@ -789,7 +789,7 @@ dnl
+ AC_DEFUN([PHP_BUILD_STATIC],[
+   PHP_BUILD_PROGRAM
+   OVERALL_TARGET=libphp[]$PHP_MAJOR_VERSION[.la]
+-  php_build_target=static
++  php_sapi_module=static
+ ])
+ 
+ dnl
+@@ -798,14 +798,13 @@ dnl
+ AC_DEFUN([PHP_BUILD_BUNDLE],[
+   PHP_BUILD_PROGRAM
+   OVERALL_TARGET=libs/libphp[]$PHP_MAJOR_VERSION[.bundle]
+-  php_build_target=static
++  php_sapi_module=static
+ ])
+ 
+ dnl
+ dnl PHP_BUILD_PROGRAM
+ dnl
+ AC_DEFUN([PHP_BUILD_PROGRAM],[
+-  OVERALL_TARGET=[]ifelse($1,,php,$1)
+   php_c_pre='$(LIBTOOL) --mode=compile $(CC)'
+   php_c_meta='$(COMMON_FLAGS) $(CFLAGS_CLEAN) $(EXTRA_CFLAGS)'
+   php_c_post=
+@@ -826,8 +825,6 @@ AC_DEFUN([PHP_BUILD_PROGRAM],[
+   shared_cxx_meta='$(COMMON_FLAGS) $(CXXFLAGS_CLEAN) $(EXTRA_CXXFLAGS) '$pic_setting
+   shared_cxx_post=
+   shared_lo=lo
+-
+-  php_build_target=program
+ ])
+ 
+ dnl
+@@ -873,32 +870,46 @@ EOF
+ dnl
+ dnl PHP_SELECT_SAPI(name, type[, sources [, extra-cflags [, build-target]]])
+ dnl
+-dnl Selects the SAPI name and type (static, shared, programm)
++dnl Selects the SAPI name and type (static, shared, bundle, program)
+ dnl and optionally also the source-files for the SAPI-specific
+ dnl objects.
+ dnl
+ AC_DEFUN([PHP_SELECT_SAPI],[
+-  if test "$PHP_SAPI" != "default"; then
+-AC_MSG_ERROR([
++  if test "$2" = "program"; then
++    PHP_BINARIES="$PHP_BINARIES $1"
++  elif test "$PHP_SAPI" != "none"; then
++    AC_MSG_ERROR([
+ +--------------------------------------------------------------------+
+ |                        *** ATTENTION ***                           |
+ |                                                                    |
+ | You've configured multiple SAPIs to be build. You can build only   |
+-| one SAPI module and CLI binary at the same time.                   |
++| one SAPI module plus CGI, CLI and FPM binaries at the same time.   |
+ +--------------------------------------------------------------------+
+ ])
++  else
++    PHP_SAPI=$1
+   fi
+ 
+-  PHP_SAPI=$1
+-  
++  PHP_ADD_BUILD_DIR([sapi/$1])
++
++  PHP_INSTALLED_SAPIS="$PHP_INSTALLED_SAPIS $1"
++
+   case "$2" in
+   static[)] PHP_BUILD_STATIC;;
+   shared[)] PHP_BUILD_SHARED;;
+   bundle[)] PHP_BUILD_BUNDLE;;
+-  program[)] PHP_BUILD_PROGRAM($5);;
++  program[)] PHP_BUILD_PROGRAM;;
+   esac
+     
+-  ifelse($3,,,[PHP_ADD_SOURCES([sapi/$1],[$3],[$4],[sapi])])
++  ifelse($2,program,[
++    install_binaries="install-binaries"
++    install_binary_targets="$install_binary_targets install-$1"
++    PHP_SUBST(PHP_[]translit($1,a-z0-9-,A-Z0-9_)[]_OBJS)
++    ifelse($3,,,[PHP_ADD_SOURCES_X([sapi/$1],[$3],[$4],PHP_[]translit($1,a-z0-9-,A-Z0-9_)[]_OBJS)])
++  ],[
++    install_sapi="install-sapi"
++    ifelse($3,,,[PHP_ADD_SOURCES([sapi/$1],[$3],[$4],[sapi])])
++  ])
+ ])
+ 
+ dnl deprecated
+diff --git a/configure.in b/configure.in
+index 183c3e3..fb69028 100644
+--- a/configure.in
++++ b/configure.in
+@@ -304,8 +304,8 @@ dnl -------------------------------------------------------------------------
+ PTHREADS_CHECK
+ PHP_HELP_SEPARATOR([SAPI modules:])
+ PHP_SHLIB_SUFFIX_NAMES
+-PHP_SAPI=default
+ PHP_BUILD_PROGRAM
++PHP_SAPI=none
+ 
+ 
+ dnl SAPI configuration.
+@@ -324,6 +324,20 @@ dnl Show which main SAPI was selected
+ AC_MSG_CHECKING([for chosen SAPI module])
+ AC_MSG_RESULT([$PHP_SAPI])
+ 
++dnl Show which binaries were selected
++AC_MSG_CHECKING([for executable SAPI binaries])
++if test "$PHP_BINARIES"; then
++  AC_MSG_RESULT([$PHP_BINARIES])
++else
++  AC_MSG_RESULT([none])
++fi
++
++dnl Exit early
++if test -z "$PHP_INSTALLED_SAPIS"; then
++  AC_MSG_ERROR([Nothing to build.])
++fi
++
++dnl force ZTS
+ if test "$enable_maintainer_zts" = "yes"; then
+   PTHREADS_ASSIGN_VARS
+   PTHREADS_FLAGS
+@@ -965,14 +979,8 @@ dnl -------------------------------------------------------------------------
+ enable_shared=yes
+ enable_static=yes
+ 
+-case $php_build_target in
+-  program|static)
+-    standard_libtool_flag='-prefer-non-pic -static'
+-    if test -z "$PHP_MODULES" && test -z "$PHP_ZEND_EX"; then
+-        enable_shared=no
+-    fi
+-    ;;
+-  shared)
++case $php_sapi_module in
++  shared[)]
+     enable_static=no
+     case $with_pic in
+       yes)
+@@ -984,6 +992,12 @@ case $php_build_target in
+     esac
+     EXTRA_LDFLAGS="$EXTRA_LDFLAGS -avoid-version -module"
+     ;;
++  *[)]
++    standard_libtool_flag='-prefer-non-pic -static'
++    if test -z "$PHP_MODULES" && test -z "$PHP_ZEND_EX"; then
++      enable_shared=no
++    fi
++    ;;
+ esac
+ 
+ EXTRA_LIBS="$EXTRA_LIBS $DLIBS $LIBS"
+@@ -1221,24 +1235,15 @@ case $host_alias in
+   ;;
+ esac
+ 
+-if test "$PHP_CLI" != "no"; then
+-  PHP_CLI_TARGET="\$(SAPI_CLI_PATH)"
+-  PHP_INSTALL_CLI_TARGET="install-cli"
+-  PHP_ADD_SOURCES(sapi/cli, php_cli.c php_cli_readline.c,, cli)
+-  PHP_INSTALLED_SAPIS="cli $PHP_SAPI"
+-  PHP_EXECUTABLE="\$(top_builddir)/\$(SAPI_CLI_PATH)"
+-else
+-  PHP_INSTALLED_SAPIS="$PHP_SAPI"
+-fi
+-
+ PHP_SUBST_OLD(PHP_INSTALLED_SAPIS)
+ 
+ PHP_SUBST(PHP_EXECUTABLE)
+-PHP_SUBST(PHP_CLI_TARGET)
++
+ PHP_SUBST(PHP_SAPI_OBJS)
+-PHP_SUBST(PHP_CLI_OBJS)
++PHP_SUBST(PHP_BINARY_OBJS)
+ PHP_SUBST(PHP_GLOBAL_OBJS)
+ 
++PHP_SUBST(PHP_BINARIES)
+ PHP_SUBST(PHP_MODULES)
+ PHP_SUBST(PHP_ZEND_EX)
+ 
+@@ -1382,20 +1387,12 @@ else
+   pharcmd_install=
+ fi;
+ 
+-all_targets="$lcov_target \$(OVERALL_TARGET) \$(PHP_MODULES) \$(PHP_ZEND_EX) \$(PHP_CLI_TARGET) $pharcmd"
+-install_targets="$install_modules install-build install-headers install-programs $install_pear $pharcmd_install"
+-
+-case $PHP_SAPI in
+-  cli)
+-    install_targets="$PHP_INSTALL_CLI_TARGET $install_targets"
+-    ;;
+-  *)
+-    install_targets="install-sapi $PHP_INSTALL_CLI_TARGET $install_targets"
+-    ;;
+-esac
++all_targets="$lcov_target \$(OVERALL_TARGET) \$(PHP_MODULES) \$(PHP_ZEND_EX) \$(PHP_BINARIES) $pharcmd"
++install_targets="$install_sapi $install_modules $install_binaries install-build install-headers install-programs $install_pear $pharcmd_install"
+ 
+ PHP_SUBST(all_targets)
+ PHP_SUBST(install_targets)
++PHP_SUBST(install_binary_targets)
+ 
+ PHP_INSTALL_HEADERS([Zend/ TSRM/ include/ main/ main/streams/])
+ 
+@@ -1420,7 +1417,7 @@ case $host_alias in
+     PHP_ADD_BUILD_DIR(netware)
+     ;;
+   *)
+-    PHP_ADD_SOURCES(/main, internal_functions_cli.c,, cli)
++    PHP_ADD_SOURCES_X(/main, internal_functions_cli.c,, PHP_BINARY_OBJS)
+     ;;
+ esac
+ 
+@@ -1451,7 +1448,6 @@ fi
+ PHP_ADD_SOURCES_X(Zend, zend_execute.c,,PHP_GLOBAL_OBJS,,$flag)
+ 
+ PHP_ADD_BUILD_DIR(main main/streams)
+-PHP_ADD_BUILD_DIR(sapi/$PHP_SAPI sapi/cli)
+ PHP_ADD_BUILD_DIR(TSRM)
+ PHP_ADD_BUILD_DIR(Zend)
+ 
+diff --git a/sapi/cgi/Makefile.frag b/sapi/cgi/Makefile.frag
+index 57a3b29..505119e 100644
+--- a/sapi/cgi/Makefile.frag
++++ b/sapi/cgi/Makefile.frag
+@@ -1,2 +1,9 @@
+-$(SAPI_CGI_PATH): $(PHP_GLOBAL_OBJS) $(PHP_SAPI_OBJS)
++cgi: $(SAPI_CGI_PATH)
++
++$(SAPI_CGI_PATH): $(PHP_GLOBAL_OBJS) $(PHP_BINARY_OBJS) $(PHP_CGI_OBJS)
+ 	$(BUILD_CGI)
++
++install-cgi: $(SAPI_CGI_PATH)
++	@echo "Installing PHP CGI binary:        $(INSTALL_ROOT)$(bindir)/"
++	@$(INSTALL) -m 0755 $(SAPI_CGI_PATH) $(INSTALL_ROOT)$(bindir)/$(program_prefix)php-cgi$(program_suffix)$(EXEEXT)
++
+diff --git a/sapi/cgi/config9.m4 b/sapi/cgi/config9.m4
+index 9df454a..67251ae 100644
+--- a/sapi/cgi/config9.m4
++++ b/sapi/cgi/config9.m4
+@@ -8,11 +8,9 @@ PHP_ARG_ENABLE(cgi,,
+ dnl
+ dnl CGI setup
+ dnl
+-if test "$PHP_SAPI" = "default"; then
+-  AC_MSG_CHECKING(whether to build CGI binary)
+-  if test "$PHP_CGI" != "no"; then
++AC_MSG_CHECKING(for CGI build)
++if test "$PHP_CGI" != "no"; then
+     AC_MSG_RESULT(yes)
+-
+     AC_MSG_CHECKING([for socklen_t in sys/socket.h])
+     AC_EGREP_HEADER([socklen_t], [sys/socket.h],
+       [AC_MSG_RESULT([yes])
+@@ -50,31 +48,29 @@ if test "$PHP_SAPI" = "default"; then
+         SAPI_CGI_PATH=sapi/cgi/php-cgi
+         ;;
+     esac
+-    PHP_SUBST(SAPI_CGI_PATH)
+ 
+-    dnl Set install target and select SAPI
+-    INSTALL_IT="@echo \"Installing PHP CGI binary: \$(INSTALL_ROOT)\$(bindir)/\"; \$(INSTALL) -m 0755 \$(SAPI_CGI_PATH) \$(INSTALL_ROOT)\$(bindir)/\$(program_prefix)php-cgi\$(program_suffix)\$(EXEEXT)"
++    dnl Select SAPI
+     PHP_SELECT_SAPI(cgi, program, cgi_main.c fastcgi.c,, '$(SAPI_CGI_PATH)')
+ 
+     case $host_alias in
+       *aix*)
+-        BUILD_CGI="echo '\#! .' > php.sym && echo >>php.sym && nm -BCpg \`echo \$(PHP_GLOBAL_OBJS) \$(PHP_SAPI_OBJS) | sed 's/\([A-Za-z0-9_]*\)\.lo/\1.o/g'\` | \$(AWK) '{ if (((\$\$2 == \"T\") || (\$\$2 == \"D\") || (\$\$2 == \"B\")) && (substr(\$\$3,1,1) != \".\")) { print \$\$3 } }' | sort -u >> php.sym && \$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) -Wl,-brtl -Wl,-bE:php.sym \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_SAPI_OBJS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_CGI_PATH)"
++        if test "$php_sapi_module" = "shared"; then
++          BUILD_CGI="echo '\#! .' > php.sym && echo >>php.sym && nm -BCpg \`echo \$(PHP_GLOBAL_OBJS) \$(PHP_BINARY_OBJS) \$(PHP_CGI_OBJS) | sed 's/\([A-Za-z0-9_]*\)\.lo/.libs\/\1.o/g'\` | \$(AWK) '{ if (((\$\$2 == \"T\") || (\$\$2 == \"D\") || (\$\$2 == \"B\")) && (substr(\$\$3,1,1) != \".\")) { print \$\$3 } }' | sort -u >> php.sym && \$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) -Wl,-brtl -Wl,-bE:php.sym \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_CGI_OBJS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_CGI_PATH)"
++        else
++          BUILD_CGI="echo '\#! .' > php.sym && echo >>php.sym && nm -BCpg \`echo \$(PHP_GLOBAL_OBJS) \$(PHP_BINARY_OBJS) \$(PHP_CGI_OBJS) | sed 's/\([A-Za-z0-9_]*\)\.lo/\1.o/g'\` | \$(AWK) '{ if (((\$\$2 == \"T\") || (\$\$2 == \"D\") || (\$\$2 == \"B\")) && (substr(\$\$3,1,1) != \".\")) { print \$\$3 } }' | sort -u >> php.sym && \$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) -Wl,-brtl -Wl,-bE:php.sym \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_CGI_OBJS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_CGI_PATH)"
++        fi
+         ;;
+       *darwin*)
+-        BUILD_CGI="\$(CC) \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(NATIVE_RPATHS) \$(PHP_GLOBAL_OBJS:.lo=.o) \$(PHP_SAPI_OBJS:.lo=.o) \$(PHP_FRAMEWORKS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_CGI_PATH)"
++        BUILD_CGI="\$(CC) \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(NATIVE_RPATHS) \$(PHP_GLOBAL_OBJS:.lo=.o) \$(PHP_BINARY_OBJS:.lo=.o) \$(PHP_CGI_OBJS:.lo=.o) \$(PHP_FRAMEWORKS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_CGI_PATH)"
+       ;;
+       *)
+-        BUILD_CGI="\$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_SAPI_OBJS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_CGI_PATH)"
++        BUILD_CGI="\$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_BINARY_OBJS) \$(PHP_CGI_OBJS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_CGI_PATH)"
+       ;;
+     esac
+ 
++    dnl Expose to Makefile
++    PHP_SUBST(SAPI_CGI_PATH)
+     PHP_SUBST(BUILD_CGI)
+-
+-  elif test "$PHP_CLI" != "no"; then
+-    AC_MSG_RESULT(no)
+-    OVERALL_TARGET=
+-    PHP_SAPI=cli   
+-  else
+-    AC_MSG_ERROR([No SAPIs selected.])  
+-  fi
++else
++  AC_MSG_RESULT(yes)
+ fi
+diff --git a/sapi/cli/Makefile.frag b/sapi/cli/Makefile.frag
+index 6903ca1..0afad4f 100644
+--- a/sapi/cli/Makefile.frag
++++ b/sapi/cli/Makefile.frag
+@@ -1,11 +1,12 @@
+ cli: $(SAPI_CLI_PATH)
+ 
+-$(SAPI_CLI_PATH): $(PHP_GLOBAL_OBJS) $(PHP_CLI_OBJS)
++$(SAPI_CLI_PATH): $(PHP_GLOBAL_OBJS) $(PHP_BINARY_OBJS) $(PHP_CLI_OBJS)
+ 	$(BUILD_CLI)
+ 
+ install-cli: $(SAPI_CLI_PATH)
+ 	@echo "Installing PHP CLI binary:        $(INSTALL_ROOT)$(bindir)/"
+-	@$(INSTALL_CLI)
++	@$(INSTALL) -m 0755 $(SAPI_CLI_PATH) $(INSTALL_ROOT)$(bindir)/$(program_prefix)php$(program_suffix)$(EXEEXT)
+ 	@echo "Installing PHP CLI man page:      $(INSTALL_ROOT)$(mandir)/man1/"
+ 	@$(mkinstalldirs) $(INSTALL_ROOT)$(mandir)/man1
+-	@$(INSTALL_DATA) $(builddir)/php.1 $(INSTALL_ROOT)$(mandir)/man1/$(program_prefix)php$(program_suffix).1
++	@$(INSTALL_DATA) sapi/cli/php.1 $(INSTALL_ROOT)$(mandir)/man1/$(program_prefix)php$(program_suffix).1
++
+diff --git a/sapi/cli/config.m4 b/sapi/cli/config.m4
+index 1a6fdbf..0a0a660 100644
+--- a/sapi/cli/config.m4
++++ b/sapi/cli/config.m4
+@@ -8,32 +8,41 @@ PHP_ARG_ENABLE(cli,,
+ 
+ AC_MSG_CHECKING(for CLI build)
+ if test "$PHP_CLI" != "no"; then
+-  PHP_ADD_MAKEFILE_FRAGMENT($abs_srcdir/sapi/cli/Makefile.frag,$abs_srcdir/sapi/cli,sapi/cli)
++  PHP_ADD_MAKEFILE_FRAGMENT($abs_srcdir/sapi/cli/Makefile.frag)
++
++  dnl Set filename
+   SAPI_CLI_PATH=sapi/cli/php
+-  PHP_SUBST(SAPI_CLI_PATH)
++
++  dnl Select SAPI
++  PHP_SELECT_SAPI(cli, program, php_cli.c php_cli_readline.c,, '$(SAPI_CLI_PATH)')
+ 
+   case $host_alias in
+   *aix*)
+-    if test "$php_build_target" = "shared"; then
+-      BUILD_CLI="echo '\#! .' > php.sym && echo >>php.sym && nm -BCpg \`echo \$(PHP_GLOBAL_OBJS) \$(PHP_CLI_OBJS) | sed 's/\([A-Za-z0-9_]*\)\.lo/.libs\/\1.o/g'\` | \$(AWK) '{ if (((\$\$2 == \"T\") || (\$\$2 == \"D\") || (\$\$2 == \"B\")) && (substr(\$\$3,1,1) != \".\")) { print \$\$3 } }' | sort -u >> php.sym && \$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) -Wl,-brtl -Wl,-bE:php.sym \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_CLI_OBJS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_CLI_PATH)"
++    if test "$php_sapi_module" = "shared"; then
++      BUILD_CLI="echo '\#! .' > php.sym && echo >>php.sym && nm -BCpg \`echo \$(PHP_GLOBAL_OBJS) \$(PHP_BINARY_OBJS) \$(PHP_CLI_OBJS) | sed 's/\([A-Za-z0-9_]*\)\.lo/.libs\/\1.o/g'\` | \$(AWK) '{ if (((\$\$2 == \"T\") || (\$\$2 == \"D\") || (\$\$2 == \"B\")) && (substr(\$\$3,1,1) != \".\")) { print \$\$3 } }' | sort -u >> php.sym && \$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) -Wl,-brtl -Wl,-bE:php.sym \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_CLI_OBJS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_CLI_PATH)"
+     else
+-      BUILD_CLI="echo '\#! .' > php.sym && echo >>php.sym && nm -BCpg \`echo \$(PHP_GLOBAL_OBJS) \$(PHP_CLI_OBJS) | sed 's/\([A-Za-z0-9_]*\)\.lo/\1.o/g'\` | \$(AWK) '{ if (((\$\$2 == \"T\") || (\$\$2 == \"D\") || (\$\$2 == \"B\")) && (substr(\$\$3,1,1) != \".\")) { print \$\$3 } }' | sort -u >> php.sym && \$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) -Wl,-brtl -Wl,-bE:php.sym \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_CLI_OBJS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_CLI_PATH)"
++      BUILD_CLI="echo '\#! .' > php.sym && echo >>php.sym && nm -BCpg \`echo \$(PHP_GLOBAL_OBJS) \$(PHP_BINARY_OBJS) \$(PHP_CLI_OBJS) | sed 's/\([A-Za-z0-9_]*\)\.lo/\1.o/g'\` | \$(AWK) '{ if (((\$\$2 == \"T\") || (\$\$2 == \"D\") || (\$\$2 == \"B\")) && (substr(\$\$3,1,1) != \".\")) { print \$\$3 } }' | sort -u >> php.sym && \$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) -Wl,-brtl -Wl,-bE:php.sym \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_CLI_OBJS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_CLI_PATH)"
+     fi
+     ;;
+   *darwin*)
+-    BUILD_CLI="\$(CC) \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(NATIVE_RPATHS) \$(PHP_GLOBAL_OBJS:.lo=.o) \$(PHP_CLI_OBJS:.lo=.o) \$(PHP_FRAMEWORKS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_CLI_PATH)"
++    BUILD_CLI="\$(CC) \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(NATIVE_RPATHS) \$(PHP_GLOBAL_OBJS:.lo=.o) \$(PHP_BINARY_OBJS:.lo=.o) \$(PHP_CLI_OBJS:.lo=.o) \$(PHP_FRAMEWORKS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_CLI_PATH)"
+     ;;
+   *netware*)
+-    BUILD_CLI="\$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(PHP_RPATHS) \$(PHP_CLI_OBJS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -Lnetware -lphp5lib -o \$(SAPI_CLI_PATH)"
++    BUILD_CLI="\$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(PHP_RPATHS) \$(PHP_BINARY_OBJS) \$(PHP_CLI_OBJS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -Lnetware -lphp5lib -o \$(SAPI_CLI_PATH)"
+     ;;
+   *)
+-    BUILD_CLI="\$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_CLI_OBJS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_CLI_PATH)"
++    BUILD_CLI="\$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_BINARY_OBJS) \$(PHP_CLI_OBJS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_CLI_PATH)"
+     ;;
+   esac
+-  INSTALL_CLI="\$(mkinstalldirs) \$(INSTALL_ROOT)\$(bindir); \$(INSTALL) -m 0755 \$(SAPI_CLI_PATH) \$(INSTALL_ROOT)\$(bindir)/\$(program_prefix)php\$(program_suffix)\$(EXEEXT)"
+ 
++  dnl Set executable for tests
++  PHP_EXECUTABLE="\$(top_builddir)/\$(SAPI_CLI_PATH)"
++  PHP_SUBST(PHP_EXECUTABLE)
++
++  dnl Expose to Makefile
++  PHP_SUBST(SAPI_CLI_PATH)
+   PHP_SUBST(BUILD_CLI)
+-  PHP_SUBST(INSTALL_CLI)
++
+   PHP_OUTPUT(sapi/cli/php.1)
+ fi
+ AC_MSG_RESULT($PHP_CLI)
+diff --git a/sapi/fpm/Makefile.frag b/sapi/fpm/Makefile.frag
+index c5cea7e..6ed9e4a 100644
+--- a/sapi/fpm/Makefile.frag
++++ b/sapi/fpm/Makefile.frag
+@@ -1,17 +1,9 @@
+ fpm: $(SAPI_FPM_PATH)
+ 
+-$(builddir)/fpm: 
+-	@mkdir -p $(builddir)/fpm
+-	@mkdir -p $(builddir)/fpm/events
+-
+-$(SAPI_FPM_PATH): $(builddir)/fpm $(PHP_GLOBAL_OBJS) $(PHP_SAPI_OBJS) $(SAPI_EXTRA_DEPS)
++$(SAPI_FPM_PATH): $(PHP_GLOBAL_OBJS) $(PHP_BINARY_OBJS) $(PHP_FPM_OBJS)
+ 	$(BUILD_FPM)
+ 
+-$(builddir)/fpm/fpm_conf.lo: $(builddir)/../../main/build-defs.h
+-
+-install-build: install-fpm
+-
+-install-fpm: install-sapi
++install-fpm: $(SAPI_FPM_PATH)
+ 	@echo "Installing PHP FPM binary:        $(INSTALL_ROOT)$(sbindir)/"
+ 	@$(mkinstalldirs) $(INSTALL_ROOT)$(sbindir)
+ 	@$(mkinstalldirs) $(INSTALL_ROOT)$(localstatedir)/log
+@@ -20,7 +12,6 @@ install-fpm: install-sapi
+ 
+ 	@echo "Installing PHP FPM config:        $(INSTALL_ROOT)$(sysconfdir)/" && \
+ 	$(mkinstalldirs) $(INSTALL_ROOT)$(sysconfdir) || :
+-
+ 	@$(INSTALL_DATA) sapi/fpm/php-fpm.conf $(INSTALL_ROOT)$(sysconfdir)/php-fpm.conf.default || :
+ 
+ 	@echo "Installing PHP FPM man page:      $(INSTALL_ROOT)$(mandir)/man8/"
+diff --git a/sapi/fpm/config.m4 b/sapi/fpm/config.m4
+index 7687660..7a0955d 100644
+--- a/sapi/fpm/config.m4
++++ b/sapi/fpm/config.m4
+@@ -583,19 +583,21 @@ if test "$PHP_FPM" != "no"; then
+   AC_DEFINE_UNQUOTED(PHP_FPM_USER, "$php_fpm_user", [fpm user name])
+   AC_DEFINE_UNQUOTED(PHP_FPM_GROUP, "$php_fpm_group", [fpm group name])
+ 
++  PHP_ADD_BUILD_DIR(sapi/fpm/fpm)
+   PHP_OUTPUT(sapi/fpm/php-fpm.conf sapi/fpm/init.d.php-fpm sapi/fpm/php-fpm.service sapi/fpm/php-fpm.8 sapi/fpm/status.html)
+-  PHP_ADD_MAKEFILE_FRAGMENT([$abs_srcdir/sapi/fpm/Makefile.frag], [$abs_srcdir/sapi/fpm], [sapi/fpm])
++  PHP_ADD_MAKEFILE_FRAGMENT([$abs_srcdir/sapi/fpm/Makefile.frag])
+ 
+   SAPI_FPM_PATH=sapi/fpm/php-fpm
+-  PHP_SUBST(SAPI_FPM_PATH)
+   
+   if test "$fpm_trace_type" && test -f "$abs_srcdir/sapi/fpm/fpm/fpm_trace_$fpm_trace_type.c"; then
+     PHP_FPM_TRACE_FILES="fpm/fpm_trace.c fpm/fpm_trace_$fpm_trace_type.c"
+   fi
+   
+   PHP_FPM_CFLAGS="-I$abs_srcdir/sapi/fpm"
++
++  FPM_EXTRA_LIBS="$LIBEVENT_LIBS"
++  PHP_SUBST(FPM_EXTRA_LIBS)
+  
+-  INSTALL_IT=":"
+   PHP_FPM_FILES="fpm/fastcgi.c \
+     fpm/fpm.c \
+     fpm/fpm_children.c \
+@@ -631,17 +633,19 @@ if test "$PHP_FPM" != "no"; then
+ 
+   case $host_alias in
+       *aix*)
+-        BUILD_FPM="echo '\#! .' > php.sym && echo >>php.sym && nm -BCpg \`echo \$(PHP_GLOBAL_OBJS) \$(PHP_SAPI_OBJS) | sed 's/\([A-Za-z0-9_]*\)\.lo/\1.o/g'\` | \$(AWK) '{ if (((\$\$2 == \"T\") || (\$\$2 == \"D\") || (\$\$2 == \"B\")) && (substr(\$\$3,1,1) != \".\")) { print \$\$3 } }' | sort -u >> php.sym && \$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) -Wl,-brtl -Wl,-bE:php.sym \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_SAPI_OBJS) \$(EXTRA_LIBS) \$(SAPI_EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_FPM_PATH)"
++        BUILD_FPM="echo '\#! .' > php.sym && echo >>php.sym && nm -BCpg \`echo \$(PHP_GLOBAL_OBJS) \$(PHP_BINARY_OBJS) \$(PHP_FPM_OBJS) | sed 's/\([A-Za-z0-9_]*\)\.lo/\1.o/g'\` | \$(AWK) '{ if (((\$\$2 == \"T\") || (\$\$2 == \"D\") || (\$\$2 == \"B\")) && (substr(\$\$3,1,1) != \".\")) { print \$\$3 } }' | sort -u >> php.sym && \$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) -Wl,-brtl -Wl,-bE:php.sym \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_FPM_OBJS) \$(EXTRA_LIBS) \$(FPM_EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_FPM_PATH)"
+         ;;
+       *darwin*)
+-        BUILD_FPM="\$(CC) \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(NATIVE_RPATHS) \$(PHP_GLOBAL_OBJS:.lo=.o) \$(PHP_SAPI_OBJS:.lo=.o) \$(PHP_FRAMEWORKS) \$(EXTRA_LIBS) \$(SAPI_EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_FPM_PATH)"
++        BUILD_FPM="\$(CC) \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(NATIVE_RPATHS) \$(PHP_GLOBAL_OBJS:.lo=.o) \$(PHP_BINARY_OBJS:.lo=.o) \$(PHP_FPM_OBJS:.lo=.o) \$(PHP_FRAMEWORKS) \$(EXTRA_LIBS) \$(FPM_EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_FPM_PATH)"
+       ;;
+       *)
+-        BUILD_FPM="\$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_SAPI_OBJS) \$(EXTRA_LIBS) \$(SAPI_EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_FPM_PATH)"
++        BUILD_FPM="\$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_BINARY_OBJS) \$(PHP_FPM_OBJS) \$(EXTRA_LIBS) \$(FPM_EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_FPM_PATH)"
+       ;;
+   esac
+ 
++  PHP_SUBST(SAPI_FPM_PATH)
+   PHP_SUBST(BUILD_FPM)
++
+ else
+   AC_MSG_RESULT(no)
+ fi
+diff --git a/sapi/litespeed/Makefile.frag b/sapi/litespeed/Makefile.frag
+index e1af2b9..99d0832 100644
+--- a/sapi/litespeed/Makefile.frag
++++ b/sapi/litespeed/Makefile.frag
+@@ -1,3 +1,9 @@
+-$(SAPI_LITESPEED_PATH): $(PHP_GLOBAL_OBJS) $(PHP_SAPI_OBJS)
++litespeed: $(SAPI_LITESPEED_PATH)
++
++$(SAPI_LITESPEED_PATH): $(PHP_GLOBAL_OBJS) $(PHP_BINARY_OBJS) $(PHP_LITESPEED_OBJS)
+ 	$(BUILD_LITESPEED)
+ 
++install-litespeed: $(SAPI_LITESPEED_PATH)
++	@echo "Installing PHP LitSpeed binary:   $(INSTALL_ROOT)$(bindir)/"
++    @$(INSTALL) -m 0755 $(SAPI_LITESPEED_PATH) $(INSTALL_ROOT)$(bindir)/lsphp
++
+diff --git a/sapi/litespeed/config.m4 b/sapi/litespeed/config.m4
+index 2b9522a..268b9ae 100644
+--- a/sapi/litespeed/config.m4
++++ b/sapi/litespeed/config.m4
+@@ -10,22 +10,21 @@ PHP_ARG_WITH(litespeed,,
+ if test "$PHP_LITESPEED" != "no"; then
+   PHP_ADD_MAKEFILE_FRAGMENT($abs_srcdir/sapi/litespeed/Makefile.frag,$abs_srcdir/sapi/litespeed,sapi/litespeed)
+   SAPI_LITESPEED_PATH=sapi/litespeed/php
+-  PHP_SUBST(SAPI_LITESPEED_PATH)
+   PHP_SELECT_SAPI(litespeed, program, lsapi_main.c lsapilib.c, "", '$(SAPI_LITESPEED_PATH)') 
+-  INSTALL_IT="@echo \"Installing PHP LiteSpeed into: \$(INSTALL_ROOT)\$(bindir)/\"; \$(INSTALL) -m 0755 \$(SAPI_LITESPEED_PATH) \$(INSTALL_ROOT)\$(bindir)/lsphp"
+   case $host_alias in
+   *darwin*)
+-    BUILD_LITESPEED="\$(CC) \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(NATIVE_RPATHS) \$(PHP_GLOBAL_OBJS:.lo=.o) \$(PHP_SAPI_OBJS:.lo=.o) \$(PHP_FRAMEWORKS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_LITESPEED_PATH)"
++    BUILD_LITESPEED="\$(CC) \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(NATIVE_RPATHS) \$(PHP_GLOBAL_OBJS:.lo=.o) \$(PHP_BINARY_OBJS:.lo=.o) \$(PHP_LITESPEED_OBJS:.lo=.o) \$(PHP_FRAMEWORKS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_LITESPEED_PATH)"
+     ;;
+   *cygwin*)
+     SAPI_LITESPEED_PATH=sapi/litespeed/php.exe
+-    BUILD_LITESPEED="\$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_SAPI_OBJS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_LITESPEED_PATH)"
++    BUILD_LITESPEED="\$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_BINARY_OBJS) \$(PHP_LITESPEED_OBJS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_LITESPEED_PATH)"
+     ;;
+   *)
+-    BUILD_LITESPEED="\$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_SAPI_OBJS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_LITESPEED_PATH)"
++    BUILD_LITESPEED="\$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_BINARY_OBJS) \$(PHP_LITESPEED_OBJS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_LITESPEED_PATH)"
+     ;;
+   esac
+ 
++  PHP_SUBST(SAPI_LITESPEED_PATH)
+   PHP_SUBST(BUILD_LITESPEED)
+ fi
+ 
+diff --git a/sapi/milter/Makefile.frag b/sapi/milter/Makefile.frag
+index 8dbdf7a..26200a1 100644
+--- a/sapi/milter/Makefile.frag
++++ b/sapi/milter/Makefile.frag
+@@ -1,2 +1,8 @@
+-$(SAPI_MILTER_PATH): $(PHP_GLOBAL_OBJS) $(PHP_SAPI_OBJS)
++milter: $(SAPI_MILTER_PATH)
++
++$(SAPI_MILTER_PATH): $(PHP_GLOBAL_OBJS) $(PHP_BINARY_OBJS) $(PHP_SAPI_OBJS)
+ 	$(BUILD_MILTER)
++
++install-milter: $(SAPI_MILTER_PATH)
++	@$(INSTALL) -m 0755 $(SAPI_MILTER_PATH) $(bindir)/php-milter
++
+diff --git a/sapi/milter/config.m4 b/sapi/milter/config.m4
+index e314551..48c7a5d 100644
+--- a/sapi/milter/config.m4
++++ b/sapi/milter/config.m4
+@@ -25,8 +25,7 @@ if test "$PHP_MILTER" != "no"; then
+   PHP_ADD_MAKEFILE_FRAGMENT($abs_srcdir/sapi/milter/Makefile.frag)
+   PHP_SELECT_SAPI(milter, program, php_milter.c getopt.c,,'$(SAPI_MILTER_PATH)') 
+   PHP_ADD_LIBRARY_WITH_PATH(milter, $MILTERPATH,)
+-  BUILD_MILTER="\$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS) \$(LDFLAGS) \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_SAPI_OBJS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_MILTER_PATH)"
+-  INSTALL_IT="\$(INSTALL) -m 0755 \$(SAPI_MILTER_PATH) \$(bindir)/php-milter"
++  BUILD_MILTER="\$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS) \$(LDFLAGS) \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_BINARY_OBJS) \$(PHP_MILTER_OBJS) \$(EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_MILTER_PATH)"
+   PHP_SUBST(SAPI_MILTER_PATH)
+   PHP_SUBST(BUILD_MILTER)
+ fi
