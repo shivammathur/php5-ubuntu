@@ -56,12 +56,7 @@ jobs:
 
       - name: Check php extensions
         if: "contains(github.event.head_commit.message, 'build-php5.3')"
-        run: |
-          scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
-          for extension in apcu amqp memcached memcache mongodb mongo redis; do
-            echo "extension=$extension.so" | sudo tee "$scan_dir/$extension.ini"
-          done
-          php -m
+        run: php -m
 
       - name: Check php-cgi version
         if: "contains(github.event.head_commit.message, 'build-php5.3')"
@@ -134,14 +129,6 @@ jobs:
           sudo chmod a+x *.sh
           ./install.sh
           ./post-install.sh
-
-      - name: Enable PHP extensions on 5.3
-        if: matrix.php-versions == '5.3'
-        run: |
-          scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
-          for extension in apcu amqp memcached memcache mongodb mongo redis; do
-            echo "extension=$extension.so" >> "$scan_dir/$extension.ini"
-          done
 
       - name: Test versions and extensions
         run: |

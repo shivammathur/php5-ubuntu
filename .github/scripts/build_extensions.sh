@@ -10,6 +10,7 @@ build_extension() {
     sudo ./configure "${args[@]}" --with-php-config="$install_dir"/bin/php-config
     sudo make -j"$(nproc)"
     sudo cp ./modules/"$extension".so "$ext_dir"/"$extension".so
+    echo "extension=$extension.so" | sudo tee "$install_dir/etc/conf.d/$extension.ini"
   )
   echo "::endgroup::"
 }
