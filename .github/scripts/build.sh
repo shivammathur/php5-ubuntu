@@ -103,7 +103,6 @@ configure_php() {
 }
 
 build_extensions() {
-  chmod a+x .github/scripts/build_extensions.sh
   bash .github/scripts/build_extensions.sh
 }
 

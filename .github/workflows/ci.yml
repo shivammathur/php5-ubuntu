@@ -39,11 +39,11 @@ jobs:
 
       - name: Compile and install packages
         if: "contains(github.event.head_commit.message, 'build-php5.3')"
-        run: chmod a+x .github/scripts/build_deps.sh && bash .github/scripts/build_deps.sh
+        run: bash .github/scripts/build_deps.sh
 
       - name: Build and ship
         if: "contains(github.event.head_commit.message, 'build-php5.3')"
-        run: chmod a+x .github/scripts/build.sh && bash .github/scripts/build.sh
+        run: bash .github/scripts/build.sh
         env:
           PHP_VERSION: ${{ matrix.php-version }}
           BINTRAY_USER: ${{ secrets.BINTRAY_USER }}
@@ -103,7 +103,7 @@ jobs:
       matrix:
         operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
         php-versions: ['5.3', '5.4', '5.5']
-    steps:        
+    steps:
       - name: Checkout
         uses: actions/checkout@v2
 
