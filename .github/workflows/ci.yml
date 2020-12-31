@@ -20,6 +20,7 @@ jobs:
         env:
           BUILDKIT_STEP_LOG_MAX_SIZE: -1
           BUILDKIT_STEP_LOG_MAX_SPEED: -1
+          DOCKER_BUILDKIT: 1
         run: |
           docker build . -f php-5.3/Dockerfile -t php-5.3
           docker run --name=php-5.3 php-5.3 sh -c exit
