@@ -5,11 +5,10 @@ jobs:
   build53:
     name: Build PHP 5.3
     runs-on: ${{ matrix.operating-system }}
-    container: ubuntu:precise
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
+        operating-system: [ubuntu-20.04]
         php-version: ['5.3']
     steps:
       - name: Checkout
@@ -35,44 +34,6 @@ jobs:
           BINTRAY_USER: ${{ secrets.BINTRAY_USER }}
           BINTRAY_KEY: ${{ secrets.BINTRAY_KEY }}
           BINTRAY_REPO: php
-
-      - name: Check php-cli version
-        if: "contains(github.event.head_commit.message, 'build-php5.3')"
-        run: php -v
-
-      - name: Check php extensions
-        if: "contains(github.event.head_commit.message, 'build-php5.3')"
-        run: php -m
-
-      - name: Check php-cgi version
-        if: "contains(github.event.head_commit.message, 'build-php5.3')"
-        run: php-cgi -v
-
-      - name: Check php-fpm version
-        if: "contains(github.event.head_commit.message, 'build-php5.3')"
-        run: |
-          php-fpm -v
-          sudo service --status-all 2>&1 | grep "fpm"
-
-      - name: Check apache service
-        if: "contains(github.event.head_commit.message, 'build-php5.3')"
-        run: |
-          echo "ServerName localhost" | sudo tee -a /etc/apache2/httpd.conf
-          sudo a2enmod php${{ matrix.php-version }} || true
-          sudo /etc/init.d/apache2 restart || true
-          sudo service --status-all 2>&1 | grep "apache"
-
-      - name: Check pecl version
-        if: "contains(github.event.head_commit.message, 'build-php5.3')"
-        run: pecl -V
-
-      - name: Check php-config version
-        if: "contains(github.event.head_commit.message, 'build-php5.3')"
-        run: php-config --version
-
-      - name: Check phpize version
-        if: "contains(github.event.head_commit.message, 'build-php5.3')"
-        run: phpize -v
 
       - name: Upload Artifact
         if: "contains(github.event.head_commit.message, 'build-php5.3')"

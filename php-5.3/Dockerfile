@@ -20,8 +20,6 @@ RUN set -x \
 	&& ln -sf /usr/lib/libc-client.so.2007e.0 /usr/lib/x86_64-linux-gnu/libc-client.a \
 	&& mkdir -p /usr/c-client/ \
 	&& ln -sf /usr/lib/libc-client.so.2007e.0 /usr/c-client/libc-client.a \
-	&& curl -o /tmp/libc.deb -sL http://archive.ubuntu.com/ubuntu/pool/main/e/eglibc/libc6_2.19-0ubuntu6_amd64.deb \
-	&& dpkg -i /tmp/libc.deb \
 	&& exit 0
 
 # Build
