@@ -41,9 +41,13 @@ jobs:
         if: "contains(github.event.head_commit.message, 'build-php5.3')"
         run: bash .github/scripts/build_deps.sh
 
-      - name: Build and ship
+      - name: Build
         if: "contains(github.event.head_commit.message, 'build-php5.3')"
-        run: bash .github/scripts/build.sh
+        run: bash .github/scripts/build.sh build
+
+      - name: Ship
+        if: "contains(github.event.head_commit.message, 'build-php5.3')"
+        run: bash .github/scripts/build.sh ship
         env:
           PHP_VERSION: ${{ matrix.php-version }}
           BINTRAY_USER: ${{ secrets.BINTRAY_USER }}

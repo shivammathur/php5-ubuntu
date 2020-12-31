@@ -115,14 +115,21 @@ build_and_ship_package() {
   curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X POST https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/5.3-linux/5.3/publish || true
 }
 
+mode="${1:-all}"
 install_dir=/usr/local/php/"$PHP_VERSION"
 tries=10
-sudo mkdir -p "$install_dir" /usr/local/ssl
-sudo chmod -R 777 /usr/local/php /usr/local/ssl
-setup_phpbuild
-build_embed
-build_apache_fpm
-merge_sapi
-configure_php
-build_extensions
-build_and_ship_package
+
+if [[ "$mode" = "all" || "$mode" = "build" ]]; then
+  sudo mkdir -p "$install_dir" /usr/local/ssl
+  sudo chmod -R 777 /usr/local/php /usr/local/ssl
+  setup_phpbuild
+  build_embed
+  build_apache_fpm
+  merge_sapi
+  configure_php
+  build_extensions
+fi
+
+if [[ "$mode" = "all" || "$mode" = "ship" ]]; then
+  build_and_ship_package
+fi
