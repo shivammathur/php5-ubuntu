@@ -72,7 +72,7 @@ build_apache_fpm() {
   sudo sed -Ei "s|php-fpm.pid|php$PHP_VERSION-fpm.pid|" "$install_dir"/etc/init.d/php"$PHP_VERSION"-fpm
   sudo cp -fp "$install_dir"/etc/init.d/php"$PHP_VERSION"-fpm /etc/init.d/php"$PHP_VERSION"-fpm
   sudo cp -fp "$install_dir"/etc/systemd/system/php-fpm.service /lib/systemd/system/php"$PHP_VERSION"-fpm.service
-  sudo /etc/init.d/php"$PHP_VERSION"-fpm start
+  sudo /etc/init.d/php"$PHP_VERSION"-fpm start || true
   mv "$install_dir" "$install_dir-fpm"
   echo "::endgroup::"
 }
