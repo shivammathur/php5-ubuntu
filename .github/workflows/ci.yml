@@ -21,7 +21,7 @@ jobs:
           LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
           LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ubuntu-toolchain-r/test
           sudo "$debconf_fix" apt-get update
-          sudo "$debconf_fix" apt-get -y install apache2 apache2-dev build-essential checkinstall zlib1g-dev automake autoconf bzip2 git m4 make libstdc++6-4.7-dev gcc-4.7 g++-4.7 gettext expect locales language-pack-de re2c mysql-server postgresql pkg-config libc-client-dev libcurl4-gnutls-dev libacl1-dev libapache2-mod-php5 libapr1-dev libasn1-8-heimdal libattr1-dev libblkid1 libbz2-dev libc6 libcap2 libc-bin libclass-isa-perl libcomerr2 libdb5.1-dev libdbus-1-3 libdebian-installer4 libdrm2 libdrm-intel1 libdrm-nouveau1a libdrm-radeon1 libexpat1-dev libenchant-dev libffi-dev libfreetype6-dev libgcc1 libgcrypt11-dev libgdbm-dev libglib2.0-0 libgnutls-dev libgpg-error0 libgssapi3-heimdal libgssapi-krb5-2 libgmp-dev libhcrypto4-heimdal libheimbase1-heimdal libheimntlm0-heimdal libhx509-5-heimdal libk5crypto3 libkeyutils1 libklibc libkrb5-26-heimdal libkrb5-dev libkrb5support0 libldb-dev libldap-dev libltdl-dev liblzma-dev libmagic-dev libmount-dev libonig-dev libmysqlclient-dev libncurses5-dev libncursesw5 libnewt-dev libnih-dev libnih-dbus1 libodbc1 libp11-kit0 libpam0g libpam-modules libpam-modules-bin libpciaccess0 libpcre3-dev libplymouth-dev libpng-dev libjpeg-dev libmcrypt-dev libmhash-dev libpspell-dev libpq-dev libreadline-dev librecode-dev libroken18-heimdal libsasl2-dev libselinux1-dev libslang2-dev libsqlite3-dev libssl-dev libswitch-perl libsybdb5 libtasn1-3 libtextwrap-dev libtidy-dev libtinfo-dev libudev-dev libuuid1 libwind0-heimdal libxml2-dev libxpm-dev libxslt-dev libzip-dev
+          sudo "$debconf_fix" apt-get -y install apache2-mpm-prefork apache2-prefork-dev build-essential checkinstall zlib1g-dev automake autoconf bzip2 git m4 make libstdc++6-4.7-dev gcc-4.7 g++-4.7 gettext expect locales language-pack-de re2c mysql-server postgresql pkg-config libc-client-dev libcurl4-gnutls-dev libacl1-dev libapache2-mod-php5 libapr1-dev libasn1-8-heimdal libattr1-dev libblkid1 libbz2-dev libc6 libcap2 libc-bin libclass-isa-perl libcomerr2 libdb5.1-dev libdbus-1-3 libdebian-installer4 libdrm2 libdrm-intel1 libdrm-nouveau1a libdrm-radeon1 libexpat1-dev libenchant-dev libffi-dev libfreetype6-dev libgcc1 libgcrypt11-dev libgdbm-dev libglib2.0-0 libgnutls-dev libgpg-error0 libgssapi3-heimdal libgssapi-krb5-2 libgmp-dev libhcrypto4-heimdal libheimbase1-heimdal libheimntlm0-heimdal libhx509-5-heimdal libk5crypto3 libkeyutils1 libklibc libkrb5-26-heimdal libkrb5-dev libkrb5support0 libldb-dev libldap-dev libltdl-dev liblzma-dev libmagic-dev libmount-dev libonig-dev libmysqlclient-dev libncurses5-dev libncursesw5 libnewt-dev libnih-dev libnih-dbus1 libodbc1 libp11-kit0 libpam0g libpam-modules libpam-modules-bin libpciaccess0 libpcre3-dev libplymouth-dev libpng-dev libjpeg-dev libmcrypt-dev libmhash-dev libpspell-dev libpq-dev libreadline-dev librecode-dev libroken18-heimdal libsasl2-dev libselinux1-dev libslang2-dev libsqlite3-dev libssl-dev libswitch-perl libsybdb5 libtasn1-3 libtextwrap-dev libtidy-dev libtinfo-dev libudev-dev libuuid1 libwind0-heimdal libxml2-dev libxpm-dev libxslt-dev libzip-dev
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.7 4
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.7 4
           for lib_link in $(find /usr/lib/x86_64-linux-gnu -maxdepth 1 -name "*.so" -printf "%f\n"); do
@@ -118,9 +118,9 @@ jobs:
           tar -xzf /tmp/php53.tar.gz -C php-5.3
           (
             cd php-5.3
-            sudo tar cf - 5.3 | zstd --fast=7 > php-5.3.tar.zst
-            sudo rm -rf 5.3
+            sudo tar cf - 5.3 | zstd -22 -T0 --ultra > php-5.3.tar.zst
           )
+          sudo rm -rf php-5.3/5.3 /tmp/php53.tar.gz
 
       - name: Install PHP
         run: |
@@ -161,12 +161,12 @@ jobs:
           tar -xzf /tmp/php53.tar.gz -C php-5.3
           (
             cd php-5.3
-            sudo tar cf - 5.3 | zstd --fast=7 > php-5.3.tar.zst
-            sudo rm -rf 5.3
+            sudo tar cf - 5.3 | zstd -22 -T0 --ultra > php-5.3.tar.zst
           )
+          sudo rm -rf php-5.3/5.3 /tmp/php53.tar.gz
           for v in 5.3 5.4 5.5; do
-            sudo XZ_OPT=-0 tar cfJ php-$v.tar.xz php-$v
-            sudo tar cf - php-$v | zstd --fast=7 > php-$v.tar.zst
+            sudo XZ_OPT=-e9 tar cfJ php-$v.tar.xz php-$v
+            sudo tar cf - php-$v | zstd -22 -T0 --ultra > php-$v.tar.zst
             curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X DELETE https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/php-$v.tar.xz || true
             curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X DELETE https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/php-$v.tar.zst || true
             curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php-$v.tar.xz https://api.bintray.com/content/shivammathur/php/"$v"-linux/"$v"/php-$v.tar.xz || true
@@ -195,6 +195,7 @@ jobs:
       - name: Release
         run: |
           set -x
+          find ./builds -name php53.tar.gz -delete || true
           curl -o install.sh -sL https://dl.bintray.com/shivammathur/php/php5-ubuntu.sh
           assets=()
           for asset in ./builds/*/*; do

@@ -78,6 +78,7 @@ build_apache_fpm() {
 }
 
 build_php() {
+  export PHP_BUILD_ZTS_ENABLE=off
   if ! php-build -v -i production "$PHP_VERSION" "$install_dir"; then
     echo 'Failed to build PHP'
     exit 1
@@ -108,6 +109,7 @@ build_extensions() {
 
 build_and_ship_package() {
   cd "$install_dir"/.. || exit
+  export GZIP=-9
   tar -czf php53.tar.gz "$PHP_VERSION"
   curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X DELETE https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/php53.tar.gz || true
   curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php53.tar.gz https://api.bintray.com/content/shivammathur/php/5.3-linux/5.3/php53.tar.gz || true
