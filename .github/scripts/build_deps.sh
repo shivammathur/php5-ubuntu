@@ -4,7 +4,7 @@ install_pkg() {
     cd "$pkg_dir" || exit 1
     sudo ./configure --prefix=/usr
     sudo make -j"$(nproc)"
-    sudo make install
+    sudo make install DESTDIR="$DESTDIR"
   )
 }
 
@@ -34,11 +34,12 @@ add_openssl() {
     ./config --prefix=/usr --openssldir=/etc/ssl --libdir=lib/openssl-1.0 shared zlib-dynamic
     make depend
     sudo make -j"$(nproc)"
-    sudo make install
+    sudo make install INSTALL_PREFIX="$DESTDIR"
   )
 }
 
 mode="${1:-all}"
+DESTDIR="${2:-}"
 
 if [[ "$mode" = "all" || "$mode" = "autoconf" ]]; then
   add_autoconf

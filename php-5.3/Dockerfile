@@ -23,12 +23,24 @@ RUN set -x \
 	&& exit 0
 
 # Build: dependencies
-FROM deps AS build-deps
+FROM deps AS build-deps-prepare
 COPY .github/scripts/build_deps.sh /
-RUN bash -xeu /build_deps.sh autoconf
-RUN bash -xeu /build_deps.sh icu
-RUN bash -xeu /build_deps.sh bison
-RUN bash -xeu /build_deps.sh openssl
+
+FROM build-deps-prepare AS build-autoconf
+RUN bash -xeu /build_deps.sh autoconf /build
+FROM build-deps-prepare AS build-bison
+RUN bash -xeu /build_deps.sh bison /build
+FROM build-deps-prepare AS build-icu
+RUN bash -xeu /build_deps.sh icu /build
+FROM build-deps-prepare AS build-openssl
+RUN bash -xeu /build_deps.sh openssl /build
+
+# Merge layers
+FROM deps AS build-deps
+COPY --from=build-autoconf /build /
+COPY --from=build-bison /build /
+COPY --from=build-icu /build /
+COPY --from=build-openssl /build /
 
 FROM build-deps AS build
 ARG PHP_VERSION=5.3
