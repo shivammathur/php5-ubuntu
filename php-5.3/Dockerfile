@@ -22,10 +22,13 @@ RUN set -x \
 	&& ln -sf /usr/lib/libc-client.so.2007e.0 /usr/c-client/libc-client.a \
 	&& exit 0
 
-# Build
+# Build: dependencies
 FROM deps AS build-deps
 COPY .github/scripts/build_deps.sh /
-RUN bash -xeu /build_deps.sh
+RUN bash -xeu /build_deps.sh autoconf
+RUN bash -xeu /build_deps.sh icu
+RUN bash -xeu /build_deps.sh bison
+RUN bash -xeu /build_deps.sh openssl
 
 FROM build-deps AS build
 ARG PHP_VERSION=5.3

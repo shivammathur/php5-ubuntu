@@ -38,7 +38,17 @@ add_openssl() {
   )
 }
 
-add_autoconf
-add_icu
-add_bison
-add_openssl
+mode="${1:-all}"
+
+if [[ "$mode" = "all" || "$mode" = "autoconf" ]]; then
+  add_autoconf
+fi
+if [[ "$mode" = "all" || "$mode" = "icu" ]]; then
+  add_icu
+fi
+if [[ "$mode" = "all" || "$mode" = "bison" ]]; then
+  add_bison
+fi
+if [[ "$mode" = "all" || "$mode" = "openssl" ]]; then
+  add_openssl
+fi
