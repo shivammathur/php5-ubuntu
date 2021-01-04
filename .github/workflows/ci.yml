@@ -1,8 +1,14 @@
 name: Test
 on:
+  workflow_dispatch:
+    inputs:
+      build-php53:
+        description: Whether to build PHP 5.3
+        required: true
   push:
 jobs:
   build53:
+    if: "!contains(github.event.head_commit.message, 'skip-build')"
     name: Build PHP 5.3
     runs-on: ${{ matrix.operating-system }}
     strategy:
@@ -12,11 +18,11 @@ jobs:
         php-version: ['5.3']
     steps:
       - name: Checkout
-        if: "contains(github.event.head_commit.message, 'build-php5.3')"
+        if: github.event.inputs.build-php53 == 'true' || contains(github.event.head_commit.message, 'build-php5.3')
         uses: actions/checkout@v2
 
       - name: Build
-        if: "contains(github.event.head_commit.message, 'build-php5.3')"
+        if: github.event.inputs.build-php53 == 'true' || contains(github.event.head_commit.message, 'build-php5.3')
         env:
           BUILDKIT_STEP_LOG_MAX_SIZE: -1
           BUILDKIT_STEP_LOG_MAX_SPEED: -1
@@ -28,7 +34,7 @@ jobs:
           docker cp php-5.3:/usr/local/php /usr/local/php
 
       - name: Ship
-        if: "contains(github.event.head_commit.message, 'build-php5.3')"
+        if: github.event.inputs.build-php53 == 'true' || contains(github.event.head_commit.message, 'build-php5.3')
         run: bash .github/scripts/build.sh ship
         env:
           PHP_VERSION: ${{ matrix.php-version }}
@@ -37,7 +43,7 @@ jobs:
           BINTRAY_REPO: php
 
       - name: Upload Artifact
-        if: "contains(github.event.head_commit.message, 'build-php5.3')"
+        if: github.event.inputs.build-php53 == 'true' || contains(github.event.head_commit.message, 'build-php5.3')
         uses: actions/upload-artifact@v2
         with:
           name: php53
