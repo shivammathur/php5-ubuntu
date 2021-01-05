@@ -63,19 +63,10 @@ jobs:
 
       - name: Fetch PHP 5.3
         if: matrix.php-versions == '5.3'
-        run: |
-          bash .github/scripts/install_zstd.sh
-          curl -o /tmp/php53.tar.gz -sL https://dl.bintray.com/shivammathur/php/php53.tar.gz
-          tar -xzf /tmp/php53.tar.gz -C php-5.3
-          (
-            cd php-5.3
-            sudo tar cf - 5.3 | zstd -22 -T0 --ultra > php-5.3.tar.zst
-          )
-          sudo rm -rf php-5.3/5.3 /tmp/php53.tar.gz
+        run: curl -o php-5.3/php-5.3.tar.zst -sL https://dl.bintray.com/shivammathur/php/php-5.3-build.tar.zst
 
       - name: Install PHP
         run: |
-          ls
           cd php-${{ matrix.php-versions }} || exit
           sudo chmod a+x *.sh
           ./install.sh
@@ -106,13 +97,7 @@ jobs:
         run: |
           bash .github/scripts/install_zstd.sh
           mkdir builds
-          curl -o /tmp/php53.tar.gz -sL https://dl.bintray.com/shivammathur/php/php53.tar.gz
-          tar -xzf /tmp/php53.tar.gz -C php-5.3
-          (
-            cd php-5.3
-            sudo tar cf - 5.3 | zstd -22 -T0 --ultra > php-5.3.tar.zst
-          )
-          sudo rm -rf php-5.3/5.3 /tmp/php53.tar.gz
+          curl -o php-5.3/php-5.3.tar.zst -sL https://dl.bintray.com/shivammathur/php/php-5.3-build.tar.zst
           for v in 5.3 5.4 5.5; do
             sudo XZ_OPT=-e9 tar cfJ php-$v.tar.xz php-$v
             sudo tar cf - php-$v | zstd -22 -T0 --ultra > php-$v.tar.zst

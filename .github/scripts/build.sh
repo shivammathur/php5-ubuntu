@@ -6,8 +6,10 @@ setup_phpbuild() {
     cd php-build || exit
     sudo ./install.sh
   )
-  sudo cp .github/scripts/5.3 /usr/local/share/php-build/definitions/
-  sudo cp .github/scripts/php-5.3.29-multi-sapi.patch /usr/local/share/php-build/patches/
+  sudo cp .github/scripts/"$PHP_VERSION" /usr/local/share/php-build/definitions/
+  if [ "$PHP_VERSION" = "5.3" ]; then
+    sudo cp .github/scripts/php-5.3.29-multi-sapi.patch /usr/local/share/php-build/patches/
+  fi
   cp /usr/local/share/php-build/default_configure_options /usr/local/share/php-build/default_configure_options.bak
   echo "::endgroup::"
 }
@@ -61,9 +63,9 @@ build_apache_fpm() {
   sudo cp -fp .github/scripts/fpm.service "$install_dir"/etc/systemd/system/php-fpm.service
   sudo cp -fp .github/scripts/php-fpm-socket-helper "$install_dir"/bin/
   sudo chmod a+x "$install_dir"/bin/php-fpm-socket-helper
-  sudo mv "$install_dir/usr/lib/apache2/modules/libphp5.so" "$install_dir/usr/lib/apache2/modules/libphp5.3.so"
-  echo "LoadModule php5_module $install_dir/usr/lib/apache2/modules/libphp5.3.so" | sudo tee /etc/apache2/mods-available/php5.3.load >/dev/null 2>&1
-  echo "LoadModule php5_module $install_dir/usr/lib/apache2/modules/libphp5.3.so" | sudo tee "$install_dir"/etc/apache2/mods-available/php5.3.load >/dev/null 2>&1
+  sudo mv "$install_dir/usr/lib/apache2/modules/libphp5.so" "$install_dir/usr/lib/apache2/modules/libphp$PHP_VERSION.so"
+  echo "LoadModule php5_module $install_dir/usr/lib/apache2/modules/libphp$PHP_VERSION.so" | sudo tee /etc/apache2/mods-available/php"$PHP_VERSION".load >/dev/null 2>&1
+  echo "LoadModule php5_module $install_dir/usr/lib/apache2/modules/libphp$PHP_VERSION.so" | sudo tee "$install_dir"/etc/apache2/mods-available/php"$PHP_VERSION".load >/dev/null 2>&1
   sudo cp -fp .github/scripts/apache.conf /etc/apache2/mods-available/php"$PHP_VERSION".conf
   sudo cp -fp .github/scripts/apache.conf "$install_dir"/etc/apache2/mods-available/php"$PHP_VERSION".conf
   sudo a2dismod php5 || true
@@ -87,7 +89,8 @@ build_php() {
 
 merge_sapi() {
   mv "$install_dir-fpm" "$install_dir"
-  cp "$install_dir-embed/lib/libphp5.so" "$install_dir/lib/"
+  cp "$install_dir-embed/lib/libphp5.so" "$install_dir/usr/lib/libphp$PHP_VERSION.so"
+  sudo sed -i 's/php_sapis=" apache2handler cli fpm cgi"/php_sapis=" apache2handler cli fpm cgi embed"/' "$install_dir"/bin/php-config
   cp -a "$install_dir-embed/include/php/sapi" "$install_dir/include/php"
 }
 
@@ -107,13 +110,12 @@ build_extensions() {
 }
 
 build_and_ship_package() {
-  cd "$install_dir"/.. || exit
   bash .github/scripts/install_zstd.sh
-  export GZIP=-9
-  tar -czf php53.tar.gz "$PHP_VERSION"
-  curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X DELETE https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/php53.tar.gz || true
-  curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php53.tar.gz https://api.bintray.com/content/shivammathur/php/5.3-linux/5.3/php53.tar.gz || true
-  curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X POST https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/5.3-linux/5.3/publish || true
+  cd "$install_dir"/.. || exit
+  sudo tar cf - "$PHP_VERSION" | zstd -22 -T0 --ultra > php-"$PHP_VERSION"-build.tar.zst
+  curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X DELETE https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/php-"$PHP_VERSION"-build.tar.zst || true
+  curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php-"$PHP_VERSION"-build.tar.zst https://api.bintray.com/content/shivammathur/php/"$PHP_VERSION"-linux/"$PHP_VERSION"/php-"$PHP_VERSION"-build.tar.zst || true
+  curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X POST https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/"$PHP_VERSION"-linux/"$PHP_VERSION"/publish || true
 }
 
 mode="${1:-all}"
