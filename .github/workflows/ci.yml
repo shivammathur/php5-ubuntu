@@ -64,10 +64,7 @@ jobs:
       - name: Fetch PHP 5.3
         if: matrix.php-versions == '5.3'
         run: |
-          curl -sSLO http://archive.ubuntu.com/ubuntu/pool/main/g/gcc-10/gcc-10-base_10-20200411-0ubuntu1_amd64.deb
-          curl -sSLO http://archive.ubuntu.com/ubuntu/pool/main/g/gcc-10/libgcc-s1_10-20200411-0ubuntu1_amd64.deb
-          curl -sSLO http://archive.ubuntu.com/ubuntu/pool/universe/libz/libzstd/zstd_1.4.4+dfsg-3_amd64.deb
-          sudo DEBIAN_FRONTEND=noninteractive dpkg -i --force-conflicts ./*.deb
+          bash .github/scripts/install_zstd.sh
           curl -o /tmp/php53.tar.gz -sL https://dl.bintray.com/shivammathur/php/php53.tar.gz
           tar -xzf /tmp/php53.tar.gz -C php-5.3
           (
@@ -107,9 +104,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Package and ship
         run: |
-          curl -sSLO http://archive.ubuntu.com/ubuntu/pool/universe/libz/libzstd/zstd_1.4.4+dfsg-3_amd64.deb
-          sudo DEBIAN_FRONTEND=noninteractive dpkg -i --force-conflicts zstd_1.4.4+dfsg-3_amd64.deb
-          zstd -V
+          bash .github/scripts/install_zstd.sh
           mkdir builds
           curl -o /tmp/php53.tar.gz -sL https://dl.bintray.com/shivammathur/php/php53.tar.gz
           tar -xzf /tmp/php53.tar.gz -C php-5.3

@@ -108,6 +108,7 @@ build_extensions() {
 
 build_and_ship_package() {
   cd "$install_dir"/.. || exit
+  bash .github/scripts/install_zstd.sh
   export GZIP=-9
   tar -czf php53.tar.gz "$PHP_VERSION"
   curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X DELETE https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/php53.tar.gz || true
