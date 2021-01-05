@@ -46,8 +46,8 @@ jobs:
         if: github.event.inputs.build-php53 == 'true' || contains(github.event.head_commit.message, 'build-php5.3')
         uses: actions/upload-artifact@v2
         with:
-          name: php53
-          path: /usr/local/php/php53.tar.gz
+          name: php5.3
+          path: /usr/local/php/php-5.3-build.tar.zst
   test:
     needs: build53
     name: Test PHP-${{ matrix.php-versions }} on ${{ matrix.operating-system }}
