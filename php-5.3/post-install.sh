@@ -16,5 +16,8 @@ echo -e "\ndate.timezone=UTC\nmemory_limit=-1" >>"$ini_file"
 sudo mkdir -p /usr/lib/systemd/system
 sudo cp -f "$prefix"/etc/init.d/php"$v"-fpm /etc/init.d/php"$v"-fpm
 sudo cp -f "$prefix"/etc/systemd/system/php-fpm.service /lib/systemd/system/php"$v"-fpm.service
+sudo cp -f "$prefix"/etc/apache2/mods-available/* /etc/apache2/mods-available/
 sudo chmod a+x "$prefix"/bin/php-fpm-socket-helper
+sudo a2enmod php"$v"
 sudo service php"$v"-fpm start
+sudo service apache2 stop

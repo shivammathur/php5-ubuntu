@@ -83,11 +83,15 @@ jobs:
           pecl -V
           curl -V
           sudo service php$ver-fpm status
+          sudo service apache2 start
+          sudo service apache2 status
+          apachectl -M | grep php
           php$ver -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
         env:
           ver: ${{ matrix.php-versions }}
   build:
     name: Update dist
+    if: "!contains(github.event.head_commit.message, 'skip-release')"
     needs: test
     runs-on: ubuntu-latest
     steps:
@@ -119,6 +123,7 @@ jobs:
           path: builds
   release:
     runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, 'skip-release')"
     needs: build
     steps:
       - uses: actions/checkout@v2

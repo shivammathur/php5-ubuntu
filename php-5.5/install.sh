@@ -1,8 +1,7 @@
 dpkg_install="sudo DEBIAN_FRONTEND=noninteractive dpkg -i --force-conflicts"
 sudo mkdir -p /var/run /run/php /usr/lib/php5
-[ "$(lsb_release -r -s)" = "20.04" ] && $dpkg_install ./deps/20.04/multiarch-support_2.28-10_amd64
-sudo cp -fp ./php-fpm-socket-helper /usr/lib/php5/
-$dpkg_install ./deps/"$(lsb_release -r -s)"/*.deb
+. /etc/os-release
+$dpkg_install ./deps/"$VERSION_ID"/*.deb
 $dpkg_install ./deps/all/*.deb
 $dpkg_install ./*.deb
 sudo tar -x -k -f ./php5-fpm_5.5.38-1_dotdeb+7.1_amd64.gz -C /

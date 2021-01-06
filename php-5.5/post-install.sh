@@ -1,9 +1,10 @@
 v=5.5
 dotdeb=http://packages.dotdeb.org
-for tool in php$v php-cgi$v php-fpm$v php-config$v phpize$v; do
+. /etc/os-release
+for tool in php"$v" php-cgi"$v" php-fpm"$v" php-config"$v" phpize"$v"; do
   if [ -f /usr/bin/"$tool" ]; then
-    tool_name=${tool/[0-9]*/}
-    sudo update-alternatives --set $tool_name /usr/bin/"$tool_name$v"
+    tool_name="${tool/[0-9]*/}"
+    sudo update-alternatives --set "$tool_name" /usr/bin/"$tool_name$v"
   fi
 done
 sudo ln -sf /usr/share/libtool/build-aux/ltmain.sh /usr/lib/php5/build/ltmain.sh
@@ -16,7 +17,8 @@ sudo mv ./deps/curl.so "$(php -i | grep "extension_dir => /usr" | sed -e "s|.*=>
 echo "extension=curl.so" >>"$ini_file"
 sudo php5enmod redis
 sudo php5enmod xdebug
-echo "deb $dotdeb wheezy-php55 all" | sudo tee /etc/apt/sources.list.d/dotdeb-ubuntu-php-"$(lsb_release -s -c)".list
-curl -sSLO https://www.dotdeb.org/dotdeb.gpg
-sudo DEBIAN_FRONTEND=noninteractive apt-key add dotdeb.gpg >/dev/null
-sudo service php5.5-fpm restart
+echo "deb $dotdeb wheezy-php55 all" | sudo tee /etc/apt/sources.list.d/dotdeb-ubuntu-php-"$VERSION_CODENAME".list
+sudo apt-key adv --fetch-keys http://www.dotdeb.org/dotdeb.gpg
+sudo a2enmod php"$v"
+sudo service php"$v"-fpm restart
+sudo service apache2 stop
