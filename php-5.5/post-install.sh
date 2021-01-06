@@ -7,7 +7,7 @@ for tool in php$v php-cgi$v php-fpm$v php-config$v phpize$v; do
   fi
 done
 sudo ln -sf /usr/share/libtool/build-aux/ltmain.sh /usr/lib/php5/build/ltmain.sh
-sudo ln -sf /usr/include/php5/ /usr/include/php
+sudo ln -sf /usr/include/php5/ /usr/include/php/20121212
 ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
 sudo chmod 777 "$ini_file"
 echo "date.timezone=UTC" >>"$ini_file"
