@@ -1,0 +1,65 @@
+#!/bin/bash
+
+sapi=$1
+php=5.5
+debconf_fix=DEBIAN_FRONTEND=noninteractive
+dpkg_install="sudo $debconf_fix dpkg -i --force-conflicts --force-overwrite"
+install_apache2() {
+  version=$1
+  sudo service nginx stop || true
+  if [ "$version" != "$(apache2 -v 2>/dev/null | grep -Eo "([0-9]+\.[0-9]+)")"  ]; then
+    if [ "$version" = "2.2" ]; then
+      sudo "$debconf_fix" apt-get purge libapache2-mod-fcgid apache2-data apache2-bin apache2 apache2-utils
+      sudo rm -rf /etc/apache2 /var/lib/apache2 /var/lib/apache2 /usr/lib/apache2/modules/* /usr/share/apache2/*
+      $dpkg_install /tmp/php-"$php"/deps/all/apache*.deb
+      $dpkg_install /tmp/php-"$php"/libapache*.deb
+      sudo cp /tmp/php-"$php"/conf/default_apache /etc/apache2/sites-available/
+    else
+      sudo "$debconf_fix" apt-get purge libapache2-mod-php5 apache2.2-common apache2-utils apache2.2-bin apache2-mpm-prefork
+      sudo rm -rf /etc/apache2 /var/lib/apache2 /var/lib/apache2 /usr/lib/apache2/modules/* /usr/share/apache2/* /etc/ufw/applications.d/apache*
+      sudo "$debconf_fix" apt-fast install --reinstall apache2-bin apache2 libapache2-mod-fcgid -y
+      sudo cp /tmp/php-"$php"/conf/php"$php"-*.conf /etc/apache2/conf-available/
+    fi
+  fi
+}
+
+install_nginx() {
+  sudo service apache2 stop || true
+  sudo "$debconf_fix" apt-fast install nginx -y
+  sudo cp /tmp/php-"$php"/conf/default_nginx /etc/nginx/sites-available/default
+}
+
+if ! command -v apt-fast >/dev/null; then sudo ln -sf /usr/bin/apt-get /usr/bin/apt-fast; fi
+
+case $sapi in
+  apache*:apache*)
+    install_apache2 2.2
+    sudo a2enmod php"$php"
+    sudo service apache2 restart
+    ;;
+  fpm:apache*)
+    install_apache2 2.4
+    sudo a2dismod php"$php" 2>/dev/null || true
+    sudo a2enmod proxy_fcgi
+    sudo a2enconf php"$php"-fpm
+    sudo service apache2 restart
+    ;;
+  cgi:apache*)
+    install_apache2 2.4
+    sudo a2dismod php"$php" mpm_event 2>/dev/null || true
+    sudo a2enmod mpm_prefork actions cgi
+    sudo a2disconf php"$php"-fpm 2>/dev/null || true
+    sudo a2enconf php"$php"-cgi
+    sudo service apache2 restart
+    ;;
+  fpm:nginx)
+    install_nginx
+    sudo service nginx restart
+    ;;
+  apache*)
+    sudo service apache2 restart
+    ;;
+  fpm|embed|cgi) ;;
+esac
+
+exit 0

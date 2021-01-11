@@ -3,7 +3,6 @@ build_extension() {
   source_dir=$2
   shift 2
   args=("$@")
-  echo "::group::$extension"
   (
     cd "$source_dir" || exit
     phpize
@@ -12,7 +11,6 @@ build_extension() {
     sudo cp ./modules/"$extension".so "$ext_dir"/"$extension".so
     echo "extension=$extension.so" | sudo tee "$install_dir/etc/conf.d/$extension.ini"
   )
-  echo "::endgroup::"
 }
 
 build_lib() {
@@ -20,7 +18,6 @@ build_lib() {
   source_dir=$2
   shift 2
   args=("$@")
-  echo "::group::$lib"
   mkdir "$install_dir"/lib/"$lib"
   (
     cd "$source_dir" || exit
@@ -28,20 +25,17 @@ build_lib() {
     sudo make -j"$(nproc)"
     sudo make install
   )
-  echo "::endgroup::"
 }
 
 add_autoconf() {
   curl -o /tmp/autoconf.tar.gz -sL https://ftp.gnu.org/gnu/autoconf/autoconf-"$AUTOCONF_VERSION".tar.gz
   tar -xzf /tmp/autoconf.tar.gz -C /tmp
-  echo "::group::autoconf"
   (
     cd /tmp/autoconf-"$AUTOCONF_VERSION" || exit 1
     sudo ./configure --prefix=/usr
     sudo make -j"$(nproc)"
     sudo make install
   )
-  echo "::endgroup::"
 }
 
 add_librabbitmq() {

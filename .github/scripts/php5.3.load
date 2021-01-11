@@ -1,0 +1,1 @@
+LoadModule php5_module /usr/local/php/5.3/usr/lib/apache2/modules/libphp5.3.so

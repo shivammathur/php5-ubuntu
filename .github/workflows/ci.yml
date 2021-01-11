@@ -67,6 +67,7 @@ jobs:
 
       - name: Install PHP
         run: |
+          sudo ln -sf $(pwd)/php-${{ matrix.php-versions }} /tmp/php-${{ matrix.php-versions }}
           cd php-${{ matrix.php-versions }} || exit
           sudo chmod a+x *.sh
           ./install.sh
@@ -83,12 +84,21 @@ jobs:
           pecl -V
           curl -V
           sudo service php$ver-fpm status
-          sudo service apache2 start
-          sudo service apache2 status
-          apachectl -M | grep php
           php$ver -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
         env:
           ver: ${{ matrix.php-versions }}
+
+      - name: Test SAPI
+        run: |
+          sudo rm -rf /var/www/html/index.html
+          echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" | sudo tee /var/www/html/index.php >/dev/null
+          for sapi in apache2handler:apache fpm:apache cgi:apache fpm:nginx; do
+            echo "::group::Test $sapi"
+            sudo switch_sapi $sapi >/dev/null
+            curl -s http://localhost
+            [ "$(curl -s http://localhost)" != "$sapi" ] && exit 1
+            echo "::endgroup::"
+          done
   build:
     name: Update dist
     if: "!contains(github.event.head_commit.message, 'skip-release')"
