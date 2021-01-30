@@ -1,8 +1,9 @@
-clone_phpbuild() {
-  [ ! -d ~/php-build ] || return 0
+#!/bin/bash
 
-  git clone git://github.com/php-build/php-build ~/php-build || exit
-  (cd ~/php-build && sudo ./install.sh) || exit
+SCRIPT_DIR=$(dirname "$BASH_SOURCE")
+
+clone_phpbuild() {
+  $SCRIPT_DIR/clone_phpbuild.sh
 }
 
 setup_phpbuild() {

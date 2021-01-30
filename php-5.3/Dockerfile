@@ -59,8 +59,8 @@ ARG PHP_VERSION
 ENV PHP_VERSION $PHP_VERSION
 COPY --from=fetch-php /tmp/php-build/packages/php-*.tar.bz2 /tmp/php-build/packages/
 
-COPY .github/scripts/build.sh /.github/scripts/build.sh
-RUN bash -xeu /.github/scripts/build.sh php-build
+COPY .github/scripts/clone_phpbuild.sh /
+RUN /clone_phpbuild.sh
 COPY .github/scripts/ /.github/scripts/
 RUN bash -xeu /.github/scripts/build.sh setup-phpbuild
 
