@@ -52,6 +52,10 @@ FROM fetch AS fetch-php-5.3
 WORKDIR /tmp/php-build/packages
 RUN wget https://secure.php.net/distributions/php-5.3.29.tar.bz2
 
+FROM fetch AS fetch-php-5.5
+WORKDIR /tmp/php-build/packages
+RUN wget https://secure.php.net/distributions/php-5.5.38.tar.bz2
+
 FROM fetch-php-$PHP_VERSION AS fetch-php
 
 FROM build-deps AS build-prepare
