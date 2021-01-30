@@ -1,10 +1,11 @@
+clone_phpbuild() {
+  [ ! -d ~/php-build ] || return 0
+
+  git clone git://github.com/php-build/php-build ~/php-build || exit
+  (cd ~/php-build && sudo ./install.sh) || exit
+}
+
 setup_phpbuild() {
-  (
-    cd ~ || exit
-    git clone git://github.com/php-build/php-build
-    cd php-build || exit
-    sudo ./install.sh
-  )
   sudo cp .github/scripts/"$PHP_VERSION" /usr/local/share/php-build/definitions/
   if [ "$PHP_VERSION" = "5.3" ]; then
     sudo cp .github/scripts/php-5.3.29-multi-sapi.patch /usr/local/share/php-build/patches/
@@ -107,6 +108,10 @@ build_and_ship_package() {
 mode="${1:-all}"
 install_dir=/usr/local/php/"$PHP_VERSION"
 tries=10
+
+if [[ "$mode" = "all" || "$mode" = "php-build" ]]; then
+  clone_phpbuild
+fi
 
 if [[ "$mode" = "all" || "$mode" = "build" ]]; then
   sudo mkdir -p "$install_dir" /usr/local/ssl

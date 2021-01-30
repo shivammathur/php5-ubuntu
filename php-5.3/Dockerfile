@@ -45,5 +45,9 @@ COPY --from=build-openssl /build /
 FROM build-deps AS build
 ARG PHP_VERSION=5.3
 ENV PHP_VERSION $PHP_VERSION
+
+COPY .github/scripts/build.sh /.github/scripts/build.sh
+RUN bash -xeu /.github/scripts/build.sh php-build
+
 COPY .github/scripts/ /.github/scripts/
 RUN bash -xeu /.github/scripts/build.sh build
