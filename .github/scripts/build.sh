@@ -113,14 +113,26 @@ if [[ "$mode" = "all" || "$mode" = "php-build" ]]; then
   clone_phpbuild
 fi
 
-if [[ "$mode" = "all" || "$mode" = "build" ]]; then
+if [[ "$mode" = "all" || "$mode" = "setup-phpbuild" ]]; then
   sudo mkdir -p "$install_dir" /usr/local/ssl
   sudo chmod -R 777 /usr/local/php /usr/local/ssl
   setup_phpbuild
+fi
+
+if [[ "$mode" = "all" || "$mode" = "build-embed" ]]; then
   build_embed
+fi
+
+if [[ "$mode" = "all" || "$mode" = "build-fpm" ]]; then
   build_apache_fpm
+fi
+
+if [[ "$mode" = "all" || "$mode" = "merge_sapi" ]]; then
   merge_sapi
   configure_php
+fi
+
+if [[ "$mode" = "all" || "$mode" = "build-extensions" ]]; then
   build_extensions
 fi
 
