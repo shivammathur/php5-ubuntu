@@ -1,8 +1,13 @@
 ARG UBUNTU_VERSION=precise
+ARG PHP_VERSION=5.3
 FROM ubuntu:$UBUNTU_VERSION AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN LC_ALL=C.UTF-8
+
+# Stage that can be used to fetch foreign files
+FROM base AS fetch
+RUN apt-get update && apt-get install -y wget ca-certificates
 
 # Install required packages
 FROM base AS deps
@@ -42,9 +47,17 @@ COPY --from=build-bison /build /
 COPY --from=build-icu /build /
 COPY --from=build-openssl /build /
 
+# Fetch php source
+FROM fetch AS fetch-php-5.3
+WORKDIR /tmp/php-build/packages
+RUN wget https://secure.php.net/distributions/php-5.3.29.tar.bz2
+
+FROM fetch-php-$PHP_VERSION AS fetch-php
+
 FROM build-deps AS build
-ARG PHP_VERSION=5.3
+ARG PHP_VERSION
 ENV PHP_VERSION $PHP_VERSION
+COPY --from=fetch-php /tmp/php-build/packages/php-*.tar.bz2 /tmp/php-build/packages/
 
 COPY .github/scripts/build.sh /.github/scripts/build.sh
 RUN bash -xeu /.github/scripts/build.sh php-build
