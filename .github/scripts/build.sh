@@ -7,11 +7,7 @@ clone_phpbuild() {
 }
 
 setup_phpbuild() {
-  sudo cp .github/scripts/"$PHP_VERSION" /usr/local/share/php-build/definitions/
-  if [ "$PHP_VERSION" = "5.3" ]; then
-    sudo cp .github/scripts/php-5.3.29-multi-sapi.patch /usr/local/share/php-build/patches/
-  fi
-  cp /usr/local/share/php-build/default_configure_options /usr/local/share/php-build/default_configure_options.bak
+  $SCRIPT_DIR/setup_phpbuild.sh
 }
 
 setup_pear() {

@@ -61,8 +61,12 @@ COPY --from=fetch-php /tmp/php-build/packages/php-*.tar.bz2 /tmp/php-build/packa
 
 COPY .github/scripts/clone_phpbuild.sh /
 RUN /clone_phpbuild.sh
+
+COPY php-build/ /php-build/
+COPY .github/scripts/setup_phpbuild.sh /
+RUN /setup_phpbuild.sh
+
 COPY .github/scripts/ /.github/scripts/
-RUN bash -xeu /.github/scripts/build.sh setup-phpbuild
 
 FROM build-prepare AS build-embed
 RUN bash -xeu /.github/scripts/build.sh build-embed
