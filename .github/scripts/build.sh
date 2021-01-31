@@ -15,6 +15,8 @@ setup_phpbuild() {
 
 setup_pear() {
   sudo rm -rf "$install_dir"/bin/pear "$install_dir"/bin/pecl
+  sudo mkdir -p /usr/local/ssl
+  sudo chmod -R 777 /usr/local/ssl
   sudo curl -fsSL --retry "$tries" -o /usr/local/ssl/cert.pem https://curl.haxx.se/ca/cacert.pem
   sudo curl -fsSL --retry "$tries" -O https://github.com/pear/pearweb_phars/raw/v1.9.7/go-pear.phar
   sudo chmod a+x .github/scripts/install-pear.expect
