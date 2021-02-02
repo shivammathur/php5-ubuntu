@@ -1,10 +1,11 @@
+clone_phpbuild() {
+  [ ! -d ~/php-build ] || return 0
+
+  git clone git://github.com/php-build/php-build ~/php-build || exit
+  (cd ~/php-build && sudo ./install.sh) || exit
+}
+
 setup_phpbuild() {
-  (
-    cd ~ || exit
-    git clone git://github.com/php-build/php-build
-    cd php-build || exit
-    sudo ./install.sh
-  )
   sudo cp .github/scripts/"$PHP_VERSION" /usr/local/share/php-build/definitions/
   if [ "$PHP_VERSION" = "5.3" ]; then
     sudo cp .github/scripts/php-5.3.29-multi-sapi.patch /usr/local/share/php-build/patches/
@@ -74,6 +75,7 @@ build_php() {
 }
 
 merge_sapi() {
+  rm -rf "$install_dir"
   mv "$install_dir-fpm" "$install_dir"
   cp "$install_dir-embed/lib/libphp5.so" "$install_dir/usr/lib/libphp$PHP_VERSION.so"
   sudo sed -i 's/php_sapis=" apache2handler cli fpm cgi"/php_sapis=" apache2handler cli fpm cgi embed"/' "$install_dir"/bin/php-config
@@ -108,14 +110,30 @@ mode="${1:-all}"
 install_dir=/usr/local/php/"$PHP_VERSION"
 tries=10
 
-if [[ "$mode" = "all" || "$mode" = "build" ]]; then
+if [[ "$mode" = "all" || "$mode" = "php-build" ]]; then
+  clone_phpbuild
+fi
+
+if [[ "$mode" = "all" || "$mode" = "setup-phpbuild" ]]; then
   sudo mkdir -p "$install_dir" /usr/local/ssl
   sudo chmod -R 777 /usr/local/php /usr/local/ssl
   setup_phpbuild
+fi
+
+if [[ "$mode" = "all" || "$mode" = "build-embed" ]]; then
   build_embed
+fi
+
+if [[ "$mode" = "all" || "$mode" = "build-fpm" ]]; then
   build_apache_fpm
+fi
+
+if [[ "$mode" = "all" || "$mode" = "merge_sapi" ]]; then
   merge_sapi
   configure_php
+fi
+
+if [[ "$mode" = "all" || "$mode" = "build-extensions" ]]; then
   build_extensions
 fi
 
