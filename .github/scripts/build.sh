@@ -75,6 +75,7 @@ build_php() {
 }
 
 merge_sapi() {
+  rm -rf "$install_dir"
   mv "$install_dir-fpm" "$install_dir"
   cp "$install_dir-embed/lib/libphp5.so" "$install_dir/usr/lib/libphp$PHP_VERSION.so"
   sudo sed -i 's/php_sapis=" apache2handler cli fpm cgi"/php_sapis=" apache2handler cli fpm cgi embed"/' "$install_dir"/bin/php-config
