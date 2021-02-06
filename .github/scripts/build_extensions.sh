@@ -17,11 +17,10 @@ build_lib() {
   lib=$1
   source_dir=$2
   shift 2
-  args=("$@")
   mkdir "$install_dir"/lib/"$lib"
   (
     cd "$source_dir" || exit
-    sudo ./configure --prefix="$install_dir"/lib/"$lib" "${args[@]}"
+    sudo ./configure --prefix="$install_dir"/lib/"$lib" "$@"
     sudo make -j"$(nproc)"
     sudo make install
   )
