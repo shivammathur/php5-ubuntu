@@ -78,4 +78,4 @@ ARG PHP_VERSION
 COPY --from=build-embed /usr/local/php/$PHP_VERSION-embed /usr/local/php/$PHP_VERSION-embed
 COPY --from=build-fpm /usr/local/php/$PHP_VERSION-fpm /usr/local/php/$PHP_VERSION-fpm
 RUN bash -xeu /.github/scripts/build.sh merge_sapi
-RUN bash -xeu /.github/scripts/build.sh build-extensions
+RUN bash -xeu /.github/scripts/build_extensions.sh
