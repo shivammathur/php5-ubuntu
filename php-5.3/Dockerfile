@@ -66,16 +66,22 @@ COPY php-build/ /php-build/
 COPY .github/scripts/setup_phpbuild.sh /
 RUN /setup_phpbuild.sh
 
-COPY .github/scripts/ /.github/scripts/
+COPY .github/scripts/build.sh /.github/scripts/
 
 FROM build-prepare AS build-embed
 RUN bash -xeu /.github/scripts/build.sh build-embed
+
 FROM build-prepare AS build-fpm
+COPY .github/scripts/*.service /.github/scripts/
+COPY .github/scripts/*.load /.github/scripts/
 RUN bash -xeu /.github/scripts/build.sh build-fpm
 
 FROM build-prepare AS php-build
 ARG PHP_VERSION
 COPY --from=build-embed /usr/local/php/$PHP_VERSION-embed /usr/local/php/$PHP_VERSION-embed
 COPY --from=build-fpm /usr/local/php/$PHP_VERSION-fpm /usr/local/php/$PHP_VERSION-fpm
+COPY .github/scripts/install-pear.expect /.github/scripts/
 RUN bash -xeu /.github/scripts/build.sh merge_sapi
+
+COPY .github/scripts/build_extensions.sh /.github/scripts/
 RUN bash -xeu /.github/scripts/build_extensions.sh
