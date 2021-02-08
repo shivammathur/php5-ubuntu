@@ -90,8 +90,18 @@ FROM build-extensions-prepare AS ext-apcu
 RUN bash -xeu /.github/scripts/build_extensions.sh apcu /build
 FROM build-extensions-prepare AS ext-amqp
 RUN bash -xeu /.github/scripts/build_extensions.sh amqp /build
+RUN rm -rf /build/usr/local/php/$PHP_VERSION/lib/librabbitmq/include
+RUN rm -rf /build/usr/local/php/$PHP_VERSION/lib/librabbitmq/lib/*.la
+RUN rm -rf /build/usr/local/php/$PHP_VERSION/lib/librabbitmq/lib/pkgconfig
 FROM build-extensions-prepare AS ext-memcached
 RUN bash -xeu /.github/scripts/build_extensions.sh memcached /build
+RUN rm -rf /build/usr/local/php/$PHP_VERSION/lib/libmemcached/bin
+RUN rm -rf /build/usr/local/php/$PHP_VERSION/lib/libmemcached/share/man
+RUN rm -rf /build/usr/local/php/$PHP_VERSION/lib/libmemcached/include
+RUN rm -rf /build/usr/local/php/$PHP_VERSION/lib/libmemcached/lib/lib*.a
+RUN rm -rf /build/usr/local/php/$PHP_VERSION/lib/libmemcached/lib/lib*.la
+RUN rm -rf /build/usr/local/php/$PHP_VERSION/lib/libmemcached/lib/pkgconfig
+RUN rm -rf /build/usr/local/php/$PHP_VERSION/lib/libmemcached/share/aclocal
 FROM build-extensions-prepare AS ext-memcache
 RUN bash -xeu /.github/scripts/build_extensions.sh memcache /build
 FROM build-extensions-prepare AS ext-mongo
