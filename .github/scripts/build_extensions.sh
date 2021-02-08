@@ -8,8 +8,10 @@ build_extension() {
     phpize
     sudo ./configure "${args[@]}" --with-php-config="$install_dir"/bin/php-config
     sudo make -j"$(nproc)"
-    sudo cp ./modules/"$extension".so "$ext_dir"/"$extension".so
-    echo "extension=$extension.so" | sudo tee "$install_dir/etc/conf.d/$extension.ini"
+    sudo mkdir -p "$DESTDIR$ext_dir"
+    sudo cp ./modules/"$extension".so "$DESTDIR$ext_dir"/"$extension".so
+    sudo mkdir -p "$DESTDIR$install_dir/etc/conf.d"
+    echo "extension=$extension.so" | sudo tee "$DESTDIR$install_dir/etc/conf.d/$extension.ini"
   )
 }
 
@@ -23,6 +25,7 @@ build_lib() {
     sudo ./configure --prefix="$install_dir"/lib/"$lib" "$@"
     sudo make -j"$(nproc)"
     sudo make install
+    sudo make install DESTDIR="$DESTDIR"
   )
 }
 
@@ -108,6 +111,7 @@ install_dir=/usr/local/php/"$PHP_VERSION"
 ext_dir=$("$install_dir"/bin/php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
 
 mode="${1:-all}"
+DESTDIR="${2:-}"
 
 if [[ "$mode" = "all" || "$mode" = "autoconf" ]]; then
   add_autoconf
