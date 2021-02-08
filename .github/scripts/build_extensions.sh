@@ -106,11 +106,37 @@ LIBMEMCACHED_VERSION='1.0.18'
 LIBRABBITMQ_VERSION='0.8.0'
 install_dir=/usr/local/php/"$PHP_VERSION"
 ext_dir=$("$install_dir"/bin/php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
-add_autoconf
-add_apcu
-add_amqp
-add_memcached
-add_memcache
-add_mongo
-add_mongodb
-add_redis
+
+mode="${1:-all}"
+
+if [[ "$mode" = "all" || "$mode" = "autoconf" ]]; then
+  add_autoconf
+fi
+
+if [[ "$mode" = "all" || "$mode" = "apcu" ]]; then
+  add_apcu
+fi
+
+if [[ "$mode" = "all" || "$mode" = "amqp" ]]; then
+  add_amqp
+fi
+
+if [[ "$mode" = "all" || "$mode" = "memcached" ]]; then
+  add_memcached
+fi
+
+if [[ "$mode" = "all" || "$mode" = "memcache" ]]; then
+  add_memcache
+fi
+
+if [[ "$mode" = "all" || "$mode" = "mongo" ]]; then
+  add_mongo
+fi
+
+if [[ "$mode" = "all" || "$mode" = "mongodb" ]]; then
+  add_mongodb
+fi
+
+if [[ "$mode" = "all" || "$mode" = "redis" ]]; then
+  add_redis
+fi
