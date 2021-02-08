@@ -77,11 +77,35 @@ COPY .github/scripts/*.load /.github/scripts/
 RUN bash -xeu /.github/scripts/build.sh build-fpm
 
 FROM build-prepare AS php-build
-ARG PHP_VERSION
 COPY --from=build-embed /usr/local/php/$PHP_VERSION-embed /usr/local/php/$PHP_VERSION-embed
 COPY --from=build-fpm /usr/local/php/$PHP_VERSION-fpm /usr/local/php/$PHP_VERSION-fpm
 COPY .github/scripts/install-pear.expect /.github/scripts/
 RUN bash -xeu /.github/scripts/build.sh merge_sapi
 
+FROM php-build AS build-extensions-prepare
 COPY .github/scripts/build_extensions.sh /.github/scripts/
-RUN bash -xeu /.github/scripts/build_extensions.sh
+RUN bash -xeu /.github/scripts/build_extensions.sh autoconf
+
+FROM build-extensions-prepare AS ext-apcu
+RUN bash -xeu /.github/scripts/build_extensions.sh apcu /build
+FROM build-extensions-prepare AS ext-amqp
+RUN bash -xeu /.github/scripts/build_extensions.sh amqp /build
+FROM build-extensions-prepare AS ext-memcached
+RUN bash -xeu /.github/scripts/build_extensions.sh memcached /build
+FROM build-extensions-prepare AS ext-memcache
+RUN bash -xeu /.github/scripts/build_extensions.sh memcache /build
+FROM build-extensions-prepare AS ext-mongo
+RUN bash -xeu /.github/scripts/build_extensions.sh mongo /build
+FROM build-extensions-prepare AS ext-mongodb
+RUN bash -xeu /.github/scripts/build_extensions.sh mongodb /build
+FROM build-extensions-prepare AS ext-redis
+RUN bash -xeu /.github/scripts/build_extensions.sh redis /build
+
+FROM php-build
+COPY --from=ext-apcu /build /
+COPY --from=ext-amqp /build /
+COPY --from=ext-memcached /build /
+COPY --from=ext-memcache /build /
+COPY --from=ext-mongo /build /
+COPY --from=ext-mongodb /build /
+COPY --from=ext-redis /build /
