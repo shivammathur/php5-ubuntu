@@ -1,20 +1,19 @@
-clone_phpbuild() {
-  [ ! -d ~/php-build ] || return 0
+#!/bin/bash
 
-  git clone git://github.com/php-build/php-build ~/php-build || exit
-  (cd ~/php-build && sudo ./install.sh) || exit
+SCRIPT_DIR=$(dirname "$BASH_SOURCE")
+
+clone_phpbuild() {
+  $SCRIPT_DIR/clone_phpbuild.sh
 }
 
 setup_phpbuild() {
-  sudo cp .github/scripts/"$PHP_VERSION" /usr/local/share/php-build/definitions/
-  if [ "$PHP_VERSION" = "5.3" ]; then
-    sudo cp .github/scripts/php-5.3.29-multi-sapi.patch /usr/local/share/php-build/patches/
-  fi
-  cp /usr/local/share/php-build/default_configure_options /usr/local/share/php-build/default_configure_options.bak
+  $SCRIPT_DIR/setup_phpbuild.sh
 }
 
 setup_pear() {
   sudo rm -rf "$install_dir"/bin/pear "$install_dir"/bin/pecl
+  sudo mkdir -p /usr/local/ssl
+  sudo chmod -R 777 /usr/local/ssl
   sudo curl -fsSL --retry "$tries" -o /usr/local/ssl/cert.pem https://curl.haxx.se/ca/cacert.pem
   sudo curl -fsSL --retry "$tries" -O https://github.com/pear/pearweb_phars/raw/v1.9.7/go-pear.phar
   sudo chmod a+x .github/scripts/install-pear.expect

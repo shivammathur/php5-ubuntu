@@ -8,8 +8,10 @@ build_extension() {
     phpize
     sudo ./configure "${args[@]}" --with-php-config="$install_dir"/bin/php-config
     sudo make -j"$(nproc)"
-    sudo cp ./modules/"$extension".so "$ext_dir"/"$extension".so
-    echo "extension=$extension.so" | sudo tee "$install_dir/etc/conf.d/$extension.ini"
+    sudo mkdir -p "$DESTDIR$ext_dir"
+    sudo cp ./modules/"$extension".so "$DESTDIR$ext_dir"/"$extension".so
+    sudo mkdir -p "$DESTDIR$install_dir/etc/conf.d"
+    echo "extension=$extension.so" | sudo tee "$DESTDIR$install_dir/etc/conf.d/$extension.ini"
   )
 }
 
@@ -17,13 +19,13 @@ build_lib() {
   lib=$1
   source_dir=$2
   shift 2
-  args=("$@")
   mkdir "$install_dir"/lib/"$lib"
   (
     cd "$source_dir" || exit
-    sudo ./configure --prefix="$install_dir"/lib/"$lib" "${args[@]}"
+    sudo ./configure --prefix="$install_dir"/lib/"$lib" "$@"
     sudo make -j"$(nproc)"
     sudo make install
+    sudo make install DESTDIR="$DESTDIR"
   )
 }
 
@@ -95,7 +97,7 @@ add_redis() {
 }
 
 AUTOCONF_VERSION='2.68'
-PHP_VERSION='5.3'
+PHP_VERSION=${PHP_VERSION:-'5.3'}
 APCU_VERSION='4.0.11'
 AMQP_VERSION='1.9.3'
 MEMCACHED_VERSION='2.2.0'
@@ -107,11 +109,38 @@ LIBMEMCACHED_VERSION='1.0.18'
 LIBRABBITMQ_VERSION='0.8.0'
 install_dir=/usr/local/php/"$PHP_VERSION"
 ext_dir=$("$install_dir"/bin/php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
-add_autoconf
-add_apcu
-add_amqp
-add_memcached
-add_memcache
-add_mongo
-add_mongodb
-add_redis
+
+mode="${1:-all}"
+DESTDIR="${2:-}"
+
+if [[ "$mode" = "all" || "$mode" = "autoconf" ]]; then
+  add_autoconf
+fi
+
+if [[ "$mode" = "all" || "$mode" = "apcu" ]]; then
+  add_apcu
+fi
+
+if [[ "$mode" = "all" || "$mode" = "amqp" ]]; then
+  add_amqp
+fi
+
+if [[ "$mode" = "all" || "$mode" = "memcached" ]]; then
+  add_memcached
+fi
+
+if [[ "$mode" = "all" || "$mode" = "memcache" ]]; then
+  add_memcache
+fi
+
+if [[ "$mode" = "all" || "$mode" = "mongo" ]]; then
+  add_mongo
+fi
+
+if [[ "$mode" = "all" || "$mode" = "mongodb" ]]; then
+  add_mongodb
+fi
+
+if [[ "$mode" = "all" || "$mode" = "redis" ]]; then
+  add_redis
+fi
