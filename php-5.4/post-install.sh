@@ -7,6 +7,7 @@ for tool in php"$v" php-cgi"$v" php-fpm"$v" php-config"$v" phpize"$v" switch_sap
     sudo update-alternatives --set "$tool_name" /usr/bin/"$tool_name$v"
   fi
 done
+sudo mkdir -p /usr/share/doc/php-pear/PEAR
 sudo ln -sf /usr/share/libtool/build-aux/ltmain.sh /usr/lib/php5/build/ltmain.sh
 sudo ln -sf /usr/include/php5/ /usr/include/php/20100525
 ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
