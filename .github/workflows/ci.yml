@@ -38,16 +38,15 @@ jobs:
         run: bash .github/scripts/build.sh ship
         env:
           PHP_VERSION: ${{ matrix.php-version }}
-          BINTRAY_USER: ${{ secrets.BINTRAY_USER }}
-          BINTRAY_KEY: ${{ secrets.BINTRAY_KEY }}
-          BINTRAY_REPO: php
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_WORKSPACE: ${{ github.workspace }}
 
       - name: Upload Artifact
         if: github.event.inputs.build-php53 == 'true' || contains(github.event.head_commit.message, 'build-php5.3')
         uses: actions/upload-artifact@v2
         with:
           name: php5.3
-          path: /usr/local/php/php-5.3-build.tar.zst
+          path: ${{ github.workspace }}/php-5.3-build.tar.zst
   test:
     needs: build53
     name: Test PHP-${{ matrix.php-versions }} on ${{ matrix.operating-system }}
@@ -63,7 +62,9 @@ jobs:
 
       - name: Fetch PHP 5.3
         if: matrix.php-versions == '5.3'
-        run: curl -o php-5.3/php-5.3.tar.zst -sL https://dl.bintray.com/shivammathur/php/php-5.3-build.tar.zst
+        run: gh release download -p 'php-5.3-build.tar.zst' -D php-5.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install PHP
         run: |
@@ -111,21 +112,14 @@ jobs:
         run: |
           bash .github/scripts/install_zstd.sh
           mkdir builds
-          curl -o php-5.3/php-5.3.tar.zst -sL https://dl.bintray.com/shivammathur/php/php-5.3-build.tar.zst
+          gh release download -p 'php-5.3-build.tar.zst' -D php-5.3
           for v in 5.3 5.4 5.5; do
             sudo XZ_OPT=-e9 tar cfJ php-$v.tar.xz php-$v
             sudo tar cf - php-$v | zstd -22 -T0 --ultra > php-$v.tar.zst
-            curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X DELETE https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/php-$v.tar.xz || true
-            curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X DELETE https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/php-$v.tar.zst || true
-            curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php-$v.tar.xz https://api.bintray.com/content/shivammathur/php/"$v"-linux/"$v"/php-$v.tar.xz || true
-            curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php-$v.tar.zst https://api.bintray.com/content/shivammathur/php/"$v"-linux/"$v"/php-$v.tar.zst || true
-            curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X POST https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/"$v"-linux/"$v"/publish || true
             mv php-$v.tar.* ./builds/
           done
         env:
-          BINTRAY_KEY: ${{ secrets.BINTRAY_KEY }}
-          BINTRAY_USER: ${{ secrets.BINTRAY_USER }}
-          BINTRAY_REPO: php
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
@@ -140,18 +134,24 @@ jobs:
       - run: mkdir builds
       - uses: actions/download-artifact@v2
         with:
+          name: builds
           path: builds
       - name: Release
         run: |
           set -x
-          find ./builds -name php53.tar.gz -delete || true
-          curl -o install.sh -sL https://dl.bintray.com/shivammathur/php/php5-ubuntu.sh
           assets=()
-          for asset in ./builds/*/*; do
+          for asset in ./builds/*; do
             assets+=("$asset")
           done
-          assets+=("./install.sh")
-          gh release delete "builds" -y || true
-          gh release create "builds" "${assets[@]}" -n "builds" -t "builds"
+          gh release download -p "release.log" || true
+          echo "$(date "+%Y-%m-%d %H:%M:%S") Update ${assets[@]}" | sudo tee -a release.log >/dev/null 2>&1
+          assets+=("./release.log")
+          exists=$(gh release list | grep -Po 'builds' | head -n 1)
+          if [ "x$exists" != "xbuilds" ]; then
+            assets+=("./install.sh")
+            gh release create "builds" install.sh "${assets[@]}" -n "builds" -t "builds"
+          else
+            gh release upload "builds" "${assets[@]}" --clobber
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

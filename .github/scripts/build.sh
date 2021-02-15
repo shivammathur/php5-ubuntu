@@ -98,11 +98,13 @@ build_extensions() {
 
 build_and_ship_package() {
   bash .github/scripts/install_zstd.sh
-  cd "$install_dir"/.. || exit
-  sudo tar cf - "$PHP_VERSION" | zstd -22 -T0 --ultra > php-"$PHP_VERSION"-build.tar.zst
-  curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X DELETE https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/php-"$PHP_VERSION"-build.tar.zst || true
-  curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php-"$PHP_VERSION"-build.tar.zst https://api.bintray.com/content/shivammathur/php/"$PHP_VERSION"-linux/"$PHP_VERSION"/php-"$PHP_VERSION"-build.tar.zst || true
-  curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X POST https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/"$PHP_VERSION"-linux/"$PHP_VERSION"/publish || true
+  (
+    cd "$install_dir"/.. || exit
+    sudo tar cf - "$PHP_VERSION" | zstd -22 -T0 --ultra > "$GITHUB_WORKSPACE"/php-"$PHP_VERSION"-build.tar.zst
+  )
+  gh release download -p "release.log" || true
+  echo "$(date "+%Y-%m-%d %H:%M:%S") Update php-$PHP_VERSION-build.tar.zst" | sudo tee -a release.log >/dev/null 2>&1
+  gh release upload "builds" release.log "php-$PHP_VERSION-build.tar.zst" --clobber
 }
 
 mode="${1:-all}"
