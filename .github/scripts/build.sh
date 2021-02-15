@@ -1,13 +1,13 @@
 #!/bin/bash
 
-SCRIPT_DIR=$(dirname "$BASH_SOURCE")
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 
 clone_phpbuild() {
-  $SCRIPT_DIR/clone_phpbuild.sh
+  "$SCRIPT_DIR"/clone_phpbuild.sh
 }
 
 setup_phpbuild() {
-  $SCRIPT_DIR/setup_phpbuild.sh
+  "$SCRIPT_DIR"/setup_phpbuild.sh
 }
 
 setup_pear() {
@@ -44,8 +44,8 @@ configure_apache_fpm_opts() {
 
 configure_apache_fpm() {
   sudo ln -sv "$install_dir"/sbin/php-fpm "$install_dir"/bin/php-fpm
-  sudo ln -sv $install_dir/bin/php-cgi $install_dir/usr/lib/cgi-bin/php5.3
-  sudo mkdir -p "$install_dir"/etc/systemd/system $install_dir/usr/lib/cgi-bin
+  sudo ln -sv "$install_dir"/bin/php-cgi "$install_dir"/usr/lib/cgi-bin/php5.3
+  sudo mkdir -p "$install_dir"/etc/systemd/system "$install_dir"/usr/lib/cgi-bin
   sudo cp -fp .github/scripts/php"$PHP_VERSION"-fpm.service "$install_dir"/etc/systemd/system/
   sudo cp -fp .github/scripts/php"$PHP_VERSION".load "$install_dir"/etc/apache2/mods-available/
   sudo mv "$install_dir"/etc/init.d/php-fpm "$install_dir"/etc/init.d/php"$PHP_VERSION"-fpm
@@ -57,7 +57,7 @@ configure_apache_fpm() {
 build_apache_fpm() {
   export PHP_BUILD_APXS="/usr/bin/apxs2"
   cp /usr/local/share/php-build/default_configure_options.bak /usr/local/share/php-build/default_configure_options
-  sudo mkdir -p "$install_dir" "$install_dir"/etc/apache2/mods-available "$install_dir"/etc/apache2/sites-available $install_dir/usr/lib/cgi-bin /usr/local/ssl /var/lib/apache2 /run/php/
+  sudo mkdir -p "$install_dir" "$install_dir"/etc/apache2/mods-available "$install_dir"/etc/apache2/sites-available "$install_dir"/usr/lib/cgi-bin /usr/local/ssl /var/lib/apache2 /run/php/
   sudo chmod -R 777 /usr/local/php /usr/local/ssl /usr/include/apache2 /usr/lib/apache2 /etc/apache2/ /var/lib/apache2 /var/log/apache2
   configure_apache_fpm_opts
   build_php

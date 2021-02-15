@@ -9,7 +9,7 @@ build_extension() {
     sudo ./configure "${args[@]}" --with-php-config="$install_dir"/bin/php-config
     sudo make -j"$(nproc)"
     sudo mkdir -p "$DESTDIR$ext_dir"
-    sudo cp ./modules/"$extension".so "$DESTDIR$ext_dir"/"$extension".so
+    sudo cp ./modules/"$extension".so "$DESTDIR$ext_dir/$extension".so
     sudo mkdir -p "$DESTDIR$install_dir/etc/conf.d"
     echo "extension=$extension.so" | sudo tee "$DESTDIR$install_dir/etc/conf.d/$extension.ini"
   )
