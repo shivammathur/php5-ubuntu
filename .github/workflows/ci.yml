@@ -27,11 +27,12 @@ jobs:
           BUILDKIT_STEP_LOG_MAX_SIZE: -1
           BUILDKIT_STEP_LOG_MAX_SPEED: -1
           DOCKER_BUILDKIT: 1
+          PHP_VERSION: ${{ matrix.php-version }}
         run: |
-          docker build . -f php-5.3/Dockerfile -t php-5.3
-          docker run --name=php-5.3 php-5.3 sh -c exit
+          docker build . --build-arg=PHP_VERSION=$PHP_VERSION -t php-$PHP_VERSION
+          docker run --name=php-$PHP_VERSION php-$PHP_VERSION sh -c exit
           sudo chmod 777 /usr/local
-          docker cp php-5.3:/usr/local/php /usr/local/php
+          docker cp php-$PHP_VERSION:/usr/local/php /usr/local/php
 
       - name: Ship
         if: github.event.inputs.build-php53 == 'true' || contains(github.event.head_commit.message, 'build-php5.3')
