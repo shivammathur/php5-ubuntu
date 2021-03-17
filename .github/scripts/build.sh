@@ -44,10 +44,10 @@ configure_apache_fpm_opts() {
 
 configure_apache_fpm() {
   sudo ln -sv "$install_dir"/sbin/php-fpm "$install_dir"/bin/php-fpm
-  sudo ln -sv "$install_dir"/bin/php-cgi "$install_dir"/usr/lib/cgi-bin/php5.3
+  sudo ln -sv "$install_dir"/bin/php-cgi "$install_dir"/usr/lib/cgi-bin/php"$PHP_VERSION"
   sudo mkdir -p "$install_dir"/etc/systemd/system "$install_dir"/usr/lib/cgi-bin
-  sudo cp -fp .github/scripts/php"$PHP_VERSION"-fpm.service "$install_dir"/etc/systemd/system/
-  sudo cp -fp .github/scripts/php"$PHP_VERSION".load "$install_dir"/etc/apache2/mods-available/
+  sudo cp -fp ./php-"$PHP_VERSION"/conf/php"$PHP_VERSION"-fpm.service "$install_dir"/etc/systemd/system/
+  sudo cp -fp ./php-"$PHP_VERSION"/conf/php"$PHP_VERSION".load "$install_dir"/etc/apache2/mods-available/
   sudo mv "$install_dir"/etc/init.d/php-fpm "$install_dir"/etc/init.d/php"$PHP_VERSION"-fpm
   sudo mv "$install_dir/usr/lib/apache2/modules/libphp5.so" "$install_dir/usr/lib/apache2/modules/libphp$PHP_VERSION.so"
   sudo sed -Ei "s|php-fpm.pid|php$PHP_VERSION-fpm.pid|" "$install_dir"/etc/init.d/php"$PHP_VERSION"-fpm

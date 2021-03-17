@@ -1,25 +1,28 @@
 v=5.4
-dotdeb=http://packages.dotdeb.org
-. /etc/os-release
-for tool in php"$v" php-cgi"$v" php-fpm"$v" php-config"$v" phpize"$v" switch_sapi"$v"; do
-  if [ -f /usr/bin/"$tool" ]; then
-    tool_name="${tool/[0-9]*/}"
-    sudo update-alternatives --set "$tool_name" /usr/bin/"$tool_name$v"
+prefix=/usr/local/php/"$v"
+sudo rm -rf /usr/bin/pecl /usr/bin/pear* 2>/dev/null || true
+sudo cp -fp switch_sapi php-fpm-socket-helper "$prefix"/bin/
+sudo cp -fp "$prefix"/usr/lib/cgi-bin/php"$v" /usr/lib/cgi-bin/php"$v"
+for tool in pear peardev pecl php phar phar.phar php-cgi php-fpm php-config phpize switch_sapi; do
+  if [ -e "$prefix"/bin/"$tool" ]; then
+    sudo cp -fp "$prefix"/bin/"$tool" /usr/bin/"$tool$v"
+    sudo update-alternatives --install /usr/bin/"$tool" "$tool" /usr/bin/"$tool$v" 50
+    sudo update-alternatives --set "$tool" /usr/bin/"$tool$v"
   fi
 done
-sudo mkdir -p /usr/share/doc/php-pear/PEAR
-sudo ln -sf /usr/share/libtool/build-aux/ltmain.sh /usr/lib/php5/build/ltmain.sh
-sudo ln -sf /usr/include/php5/ /usr/include/php/20100525
-ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-sudo chmod 777 "$ini_file" /usr/bin/switch_sapi
-echo "date.timezone=UTC" >>"$ini_file"
-sudo cp ./conf/default_apache /etc/apache2/sites-available/default
-sudo mv ./deps/libcurl.so.3 /usr/lib/libcurl.so.3
-sudo mv ./deps/curl.so "$(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")"/curl.so
-echo "extension=curl.so" >>"$ini_file"
-sudo php5enmod redis
-sudo php5enmod xdebug
-echo "deb $dotdeb wheezy all" | sudo tee /etc/apt/sources.list.d/dotdeb-ubuntu-php-"$VERSION_CODENAME".list
-sudo apt-key adv --fetch-keys http://www.dotdeb.org/dotdeb.gpg
-sudo service php"$v"-fpm restart
+sudo update-alternatives --install /usr/lib/cgi-bin/php php-cgi-bin /usr/lib/cgi-bin/php"$v" 50
+sudo update-alternatives --install /usr/lib/libphp5.so libphp5 "$prefix"/usr/lib/libphp"$v".so 50 && sudo ldconfig
+sudo update-alternatives --set php-cgi-bin /usr/lib/cgi-bin/php"$v"
+sudo ln -sf "$prefix"/include/php /usr/include/php/20100525
+ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+sudo chmod 777 "$ini_file" /usr/bin/switch_sapi "$prefix"/bin/php-fpm-socket-helper
+echo -e "\ndate.timezone=UTC\nmemory_limit=-1" >>"$ini_file"
+sudo cp -fp ./conf/*.conf /etc/apache2/mods-available/
+sudo cp -fp ./conf/default_apache /etc/apache2/sites-available/default
+sudo cp -fp "$prefix"/etc/apache2/mods-available/* /etc/apache2/mods-available/
+sudo cp -fp "$prefix"/etc/init.d/php"$v"-fpm /etc/init.d/php"$v"-fpm
+sudo cp -fp "$prefix"/etc/systemd/system/php"$v"-fpm.service /lib/systemd/system/
+sudo chmod a+x "$prefix"/bin/php-fpm-socket-helper
+sudo a2enmod php"$v"
+sudo service php"$v"-fpm start
 sudo service apache2 stop

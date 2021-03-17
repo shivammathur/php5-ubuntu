@@ -1,55 +1,47 @@
 name: Test
 on:
   workflow_dispatch:
-    inputs:
-      build-php53:
-        description: Whether to build PHP 5.3
-        required: true
   push:
 jobs:
-  build53:
-    if: "!contains(github.event.head_commit.message, 'skip-build')"
-    name: Build PHP 5.3
-    runs-on: ${{ matrix.operating-system }}
+  build-php:
+    if: "!contains(github.event.head_commit.message, 'skip-build-php')"
+    name: Build PHP ${{ matrix.php-versions }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04]
-        php-version: ['5.3']
+        php-versions: [5.3, 5.4, 5.5]
     steps:
       - name: Checkout
-        if: github.event.inputs.build-php53 == 'true' || contains(github.event.head_commit.message, 'build-php5.3')
         uses: actions/checkout@v2
 
       - name: Build
-        if: github.event.inputs.build-php53 == 'true' || contains(github.event.head_commit.message, 'build-php5.3')
         env:
           BUILDKIT_STEP_LOG_MAX_SIZE: -1
           BUILDKIT_STEP_LOG_MAX_SPEED: -1
           DOCKER_BUILDKIT: 1
-          PHP_VERSION: ${{ matrix.php-version }}
+          PHP_VERSION: ${{ matrix.php-versions }}
         run: |
-          docker build . --build-arg=PHP_VERSION=$PHP_VERSION -t php-$PHP_VERSION
+          docker build . --build-arg PHP_VERSION=$PHP_VERSION -t php-$PHP_VERSION
           docker run --name=php-$PHP_VERSION php-$PHP_VERSION sh -c exit
           sudo chmod 777 /usr/local
           docker cp php-$PHP_VERSION:/usr/local/php /usr/local/php
 
       - name: Ship
-        if: github.event.inputs.build-php53 == 'true' || contains(github.event.head_commit.message, 'build-php5.3')
         run: bash .github/scripts/build.sh ship
         env:
-          PHP_VERSION: ${{ matrix.php-version }}
+          PHP_VERSION: ${{ matrix.php-versions }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_WORKSPACE: ${{ github.workspace }}
 
       - name: Upload Artifact
-        if: github.event.inputs.build-php53 == 'true' || contains(github.event.head_commit.message, 'build-php5.3')
         uses: actions/upload-artifact@v2
         with:
-          name: php5.3
-          path: ${{ github.workspace }}/php-5.3-build.tar.zst
+          name: php${{ matrix.php-versions }}
+          path: ${{ github.workspace }}/php-${{ matrix.php-versions }}-build.tar.zst
   test:
-    needs: build53
+    needs: build-php
+    if: ${{ always() }}
     name: Test PHP-${{ matrix.php-versions }} on ${{ matrix.operating-system }}
     runs-on: ${{ matrix.operating-system }}
     strategy:
@@ -61,9 +53,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Fetch PHP 5.3
-        if: matrix.php-versions == '5.3'
-        run: gh release download -p 'php-5.3-build.tar.zst' -D php-5.3
+      - name: Fetch PHP
+        run: gh release download -p 'php-${{ matrix.php-versions }}-build.tar.zst' -D php-${{ matrix.php-versions }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -101,7 +92,7 @@ jobs:
             [ "$(curl -s http://localhost)" != "$sapi" ] && exit 1
             echo "::endgroup::"
           done
-  build:
+  package:
     name: Update dist
     if: "!contains(github.event.head_commit.message, 'skip-release')"
     needs: test
@@ -113,8 +104,8 @@ jobs:
         run: |
           bash .github/scripts/install_zstd.sh
           mkdir builds
-          gh release download -p 'php-5.3-build.tar.zst' -D php-5.3
           for v in 5.3 5.4 5.5; do
+            gh release download -p php-$v-build.tar.zst -D php-$v
             sudo XZ_OPT=-e9 tar cfJ php-$v.tar.xz php-$v
             sudo tar cf - php-$v | zstd -22 -T0 --ultra > php-$v.tar.zst
             mv php-$v.tar.* ./builds/
@@ -129,7 +120,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, 'skip-release')"
-    needs: build
+    needs: package
     steps:
       - uses: actions/checkout@v2
       - run: mkdir builds

@@ -1,21 +1,12 @@
 debconf_fix="DEBIAN_FRONTEND=noninteractive"
-dpkg_install="sudo $debconf_fix dpkg -i --force-conflicts --force-conflicts"
+dpkg_install="sudo $debconf_fix dpkg -i --force-conflicts --force-overwrite"
 if command -v apache2 && [ "2.2" != "$(apache2 -v 2>/dev/null | grep -Eo "([0-9]+\.[0-9]+)")" ]; then
   sudo "$debconf_fix" apt-get purge apache2-data apache2-bin apache2 apache2-utils
   sudo rm -rf /etc/apache2 /var/lib/apache2 /var/lib/apache2 /usr/lib/apache2/modules/* /usr/share/apache2/*
 fi
-sudo mkdir -p /var/run /run/php /usr/lib/php5 /var/www/html
-. /etc/os-release
-$dpkg_install ./deps/"$VERSION_ID"/*.deb
+sudo mkdir -p /var/run /run/php /usr/local/php /usr/lib/systemd/system /usr/lib/cgi-bin /var/www/html
+[ "$(lsb_release -r -s)" = "20.04" ] && $dpkg_install ./deps/20.04/multiarch-support_2.28-10_amd64
+$dpkg_install ./deps/"$(lsb_release -r -s)"/*.deb
 $dpkg_install ./deps/all/*.deb
-$dpkg_install ./*.deb
-sudo tar -x -k -f ./php5-fpm_5.5.38-1_dotdeb+7.1_amd64.gz -C /
-sudo cp -fp /etc/init.d/php5-fpm /etc/init.d/php5.5-fpm
-sudo cp -fp switch_sapi /usr/bin/switch_sapi5
-for tool in php5 php5-cgi php5-fpm php-config5 phpize5 switch_sapi5; do
-  if [ -f /usr/bin/"$tool" ]; then
-    tool_name=${tool/5/}
-    sudo cp -fp /usr/bin/"$tool" /usr/bin/"$tool_name"5.5
-    sudo update-alternatives --install /usr/bin/"$tool_name" "$tool_name" /usr/bin/"$tool_name"5.5 50
-  fi
-done
+sudo tar -I zstd -xf ./php-5.5-build.tar.zst -C /usr/local/php
+sudo ln -sf /usr/local/php/5.5/etc/php.ini /etc/php.ini

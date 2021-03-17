@@ -52,6 +52,10 @@ FROM fetch AS fetch-php-5.3
 WORKDIR /tmp/php-build/packages
 RUN wget https://secure.php.net/distributions/php-5.3.29.tar.bz2
 
+FROM fetch AS fetch-php-5.4
+WORKDIR /tmp/php-build/packages
+RUN wget https://secure.php.net/distributions/php-5.4.45.tar.bz2
+
 FROM fetch AS fetch-php-5.5
 WORKDIR /tmp/php-build/packages
 RUN wget https://secure.php.net/distributions/php-5.5.38.tar.bz2
@@ -76,8 +80,7 @@ FROM build-prepare AS build-embed
 RUN bash -xeu /.github/scripts/build.sh build-embed
 
 FROM build-prepare AS build-fpm
-COPY .github/scripts/*.service /.github/scripts/
-COPY .github/scripts/*.load /.github/scripts/
+COPY php-$PHP_VERSION/conf/* /php-$PHP_VERSION/conf/
 RUN bash -xeu /.github/scripts/build.sh build-fpm
 
 FROM build-prepare AS php-build

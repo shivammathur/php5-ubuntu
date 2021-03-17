@@ -6,15 +6,16 @@ debconf_fix=DEBIAN_FRONTEND=noninteractive
 dpkg_install="sudo $debconf_fix dpkg -i --force-conflicts --force-overwrite"
 install_apache2() {
   version=$1
+  sudo service nginx stop 2>/dev/null || true
   if [ "$version" != "$(apache2 -v 2>/dev/null | grep -Eo "([0-9]+\.[0-9]+)")"  ]; then
     if [ "$version" = "2.2" ]; then
       sudo "$debconf_fix" apt-get purge libapache2-mod-fcgid apache2-data apache2-bin apache2 apache2-utils
       sudo rm -rf /etc/apache2 /var/lib/apache2 /var/lib/apache2 /usr/lib/apache2/modules/* /usr/share/apache2/*
       $dpkg_install /tmp/php-"$php"/deps/all/apache*.deb
-      $dpkg_install /tmp/php-"$php"/libapache*.deb
+      sudo cp /tmp/php-"$php"/conf/php"$php".* /etc/apache2/mods-available/
       sudo cp /tmp/php-"$php"/conf/default_apache /etc/apache2/sites-available/
     else
-      sudo "$debconf_fix" apt-get purge libapache2-mod-php5 apache2.2-common apache2-utils apache2.2-bin apache2-mpm-prefork
+      sudo "$debconf_fix" apt-get purge apache2.2-common apache2-utils apache2.2-bin apache2-mpm-prefork
       sudo rm -rf /etc/apache2 /var/lib/apache2 /var/lib/apache2 /usr/lib/apache2/modules/* /usr/share/apache2/* /etc/ufw/applications.d/apache*
       sudo "$debconf_fix" apt-fast install --reinstall apache2-bin apache2 libapache2-mod-fcgid -y
       sudo cp /tmp/php-"$php"/conf/php"$php"-*.conf /etc/apache2/conf-available/
