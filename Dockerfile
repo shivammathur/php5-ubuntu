@@ -14,7 +14,7 @@ FROM base AS deps
 RUN apt-get update && apt-get install -y sudo curl python-software-properties
 RUN apt-add-repository ppa:ondrej/php -y
 RUN apt-add-repository ppa:ubuntu-toolchain-r/test
-RUN apt-get update && apt-get -y install apache2-mpm-prefork apache2-prefork-dev build-essential checkinstall zlib1g-dev automake autoconf bzip2 git m4 make libstdc++6-4.7-dev gcc-4.7 g++-4.7 gettext expect locales language-pack-de re2c mysql-server postgresql pkg-config libc-client-dev libcurl4-gnutls-dev libacl1-dev libapache2-mod-php5 libapr1-dev libasn1-8-heimdal libattr1-dev libblkid1 libbz2-dev libc6 libcap2 libc-bin libclass-isa-perl libcomerr2 libdb5.1-dev libdbus-1-3 libdebian-installer4 libdrm2 libdrm-intel1 libdrm-nouveau1a libdrm-radeon1 libexpat1-dev libenchant-dev libffi-dev libfreetype6-dev libgcc1 libgcrypt11-dev libgdbm-dev libglib2.0-0 libgnutls-dev libgpg-error0 libgssapi3-heimdal libgssapi-krb5-2 libgmp-dev libhcrypto4-heimdal libheimbase1-heimdal libheimntlm0-heimdal libhx509-5-heimdal libk5crypto3 libkeyutils1 libklibc libkrb5-26-heimdal libkrb5-dev libkrb5support0 libldb-dev libldap-dev libltdl-dev liblzma-dev libmagic-dev libmount-dev libonig-dev libmysqlclient-dev libncurses5-dev libncursesw5 libnewt-dev libnih-dev libnih-dbus1 libodbc1 libp11-kit0 libpam0g libpam-modules libpam-modules-bin libpciaccess0 libpcre3-dev libplymouth-dev libpng-dev libjpeg-dev libmcrypt-dev libmhash-dev libpspell-dev libpq-dev libreadline-dev librecode-dev libroken18-heimdal libsasl2-dev libselinux1-dev libslang2-dev libsqlite3-dev libssl-dev libswitch-perl libsybdb5 libtasn1-3 libtextwrap-dev libtidy-dev libtinfo-dev libudev-dev libuuid1 libwind0-heimdal libxml2-dev libxpm-dev libxslt-dev libzip-dev
+RUN apt-get update && apt-get -y install apache2-mpm-prefork apache2-prefork-dev build-essential checkinstall zlib1g-dev automake autoconf bzip2 git m4 make libstdc++6-4.7-dev gcc-4.7 g++-4.7 gettext expect imagemagick libmagickwand-dev locales language-pack-de re2c mysql-server postgresql pkg-config libc-client-dev libcurl4-gnutls-dev libacl1-dev libapache2-mod-php5 libapr1-dev libasn1-8-heimdal libattr1-dev libblkid1 libbz2-dev libc6 libcap2 libc-bin libclass-isa-perl libcomerr2 libdb-dev libdbus-1-3 libdebian-installer4 libdrm2 libdrm-intel1 libdrm-nouveau1a libdrm-radeon1 libevent-dev libexpat1-dev libenchant-dev libffi-dev libfreetype6-dev libgcc1 libgcrypt11-dev libgearman-dev libqdbm-dev libglib2.0-0 libgnutls-dev libgpg-error0 libgssapi3-heimdal libgssapi-krb5-2 libgmp-dev libhcrypto4-heimdal libheimbase1-heimdal libheimntlm0-heimdal libhx509-5-heimdal libidn11-dev libk5crypto3 libkeyutils1 libklibc libkrb5-26-heimdal libkrb5-dev libkrb5support0 libldb-dev libldap-dev libltdl-dev liblzma-dev libmagic-dev libmount-dev libonig-dev libmysqlclient-dev libncurses5-dev libncursesw5 libnewt-dev libnih-dev libnih-dbus1 libodbc1 libp11-kit0 libpam0g libpam-modules libpam-modules-bin libpciaccess0 libpcre3-dev libplymouth-dev libpng-dev libjpeg-dev libmcrypt-dev libmhash-dev libpspell-dev libpq-dev libreadline-dev librecode-dev libroken18-heimdal libsasl2-dev libselinux1-dev libslang2-dev libsqlite3-dev libssl-dev libswitch-perl libsybdb5 libtasn1-3 libtextwrap-dev libtidy-dev libtinfo-dev libudev-dev libuuid1 libwind0-heimdal libxml2-dev libxpm-dev libxslt-dev libzip-dev zlib1g
 RUN set -x \
 	&& update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.7 4 \
 	&& update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.7 4 \
@@ -25,6 +25,7 @@ RUN set -x \
 	&& ln -sf /usr/lib/libc-client.so.2007e.0 /usr/lib/x86_64-linux-gnu/libc-client.a \
 	&& mkdir -p /usr/c-client/ \
 	&& ln -sf /usr/lib/libc-client.so.2007e.0 /usr/c-client/libc-client.a \
+	&& ln -sf /usr/include/qdbm/* /usr/include/ \
 	&& exit 0
 
 # Build: dependencies
@@ -97,6 +98,10 @@ FROM build-extensions-prepare AS ext-apcu
 RUN bash -xeu /.github/scripts/build_extensions.sh apcu /build
 FROM build-extensions-prepare AS ext-amqp
 RUN bash -xeu /.github/scripts/build_extensions.sh amqp /build
+FROM build-extensions-prepare AS ext-gearman
+RUN bash -xeu /.github/scripts/build_extensions.sh gearman /build
+FROM build-extensions-prepare AS ext-imagick
+RUN bash -xeu /.github/scripts/build_extensions.sh imagick /build
 RUN rm -rf /build/usr/local/php/$PHP_VERSION/lib/librabbitmq/include
 RUN rm -rf /build/usr/local/php/$PHP_VERSION/lib/librabbitmq/lib/*.la
 RUN rm -rf /build/usr/local/php/$PHP_VERSION/lib/librabbitmq/lib/pkgconfig
@@ -115,14 +120,33 @@ FROM build-extensions-prepare AS ext-mongo
 RUN bash -xeu /.github/scripts/build_extensions.sh mongo /build
 FROM build-extensions-prepare AS ext-mongodb
 RUN bash -xeu /.github/scripts/build_extensions.sh mongodb /build
+FROM build-extensions-prepare AS ext-msgpack
+RUN bash -xeu /.github/scripts/build_extensions.sh msgpack /build
+FROM build-extensions-prepare AS ext-opcache
+RUN bash -xeu /.github/scripts/build_extensions.sh opcache /build
+FROM build-extensions-prepare AS ext-propro
+RUN bash -xeu /.github/scripts/build_extensions.sh propro /build
+FROM build-extensions-prepare AS ext-raphf
+RUN bash -xeu /.github/scripts/build_extensions.sh raphf /build
 FROM build-extensions-prepare AS ext-redis
-RUN bash -xeu /.github/scripts/build_extensions.sh redis /build
+RUN bash -xeu /.github/scripts/build_extensions.sh igbinary /build && \
+    bash -xeu /.github/scripts/build_extensions.sh redis /build
+FROM build-extensions-prepare AS ext-pecl_http
+RUN bash -xeu /.github/scripts/build_extensions.sh propro /build && \
+    bash -xeu /.github/scripts/build_extensions.sh raphf /build && \
+    bash -xeu /.github/scripts/build_extensions.sh pecl_http /build
 
 FROM php-build
 COPY --from=ext-apcu /build /
 COPY --from=ext-amqp /build /
+COPY --from=ext-gearman /build /
+COPY --from=ext-imagick /build /
 COPY --from=ext-memcached /build /
 COPY --from=ext-memcache /build /
 COPY --from=ext-mongo /build /
 COPY --from=ext-mongodb /build /
+COPY --from=ext-msgpack /build /
+COPY --from=ext-opcache /build /
 COPY --from=ext-redis /build /
+COPY --from=ext-pecl_http /build /
+
