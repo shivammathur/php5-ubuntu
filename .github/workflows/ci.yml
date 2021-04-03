@@ -15,26 +15,49 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-docker-php-${{ matrix.php-versions }}-${{ github.run_id }}-${{ github.run_number }}
+          restore-keys: ${{ runner.os }}-docker-php-${{ matrix.php-versions }}
+
       - name: Build
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          tags: php-${{ matrix.php-versions }}
+          build-args: PHP_VERSION=${{ matrix.php-versions }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+          outputs: type=docker,dest=/tmp/php-${{ matrix.php-versions }}.tar
+
+      # https://github.com/docker/build-push-action/issues/252
+      - name: Move build cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Copy build
         env:
-          BUILDKIT_STEP_LOG_MAX_SIZE: -1
-          BUILDKIT_STEP_LOG_MAX_SPEED: -1
-          DOCKER_BUILDKIT: 1
           PHP_VERSION: ${{ matrix.php-versions }}
         run: |
-          docker build . --build-arg PHP_VERSION=$PHP_VERSION -t php-$PHP_VERSION
+          docker load --input /tmp/php-$PHP_VERSION.tar
           docker run --name=php-$PHP_VERSION php-$PHP_VERSION sh -c exit
           sudo chmod 777 /usr/local
           docker cp php-$PHP_VERSION:/usr/local/php /usr/local/php
 
-      - name: Ship
-        run: bash .github/scripts/build.sh ship
+      - name: Package and ship artifact to releases
+        run: bash scripts/build.sh ship
         env:
           PHP_VERSION: ${{ matrix.php-versions }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_WORKSPACE: ${{ github.workspace }}
 
-      - name: Upload Artifact
+      - name: Upload artifact to workflow
         uses: actions/upload-artifact@v2
         with:
           name: php${{ matrix.php-versions }}
@@ -53,14 +76,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Fetch PHP
-        run: gh release download -p 'php-${{ matrix.php-versions }}-build.tar.zst' -D php-${{ matrix.php-versions }}
+      - name: Stage PHP
+        run: |
+          bash scripts/version-files.sh ${{ matrix.php-versions }}
+          bash scripts/stage.sh ${{ matrix.php-versions }}
+          gh release download -p 'php-${{ matrix.php-versions }}-build.tar.zst' -D php-${{ matrix.php-versions }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install PHP
         run: |
-          sudo ln -sf $(pwd)/php-${{ matrix.php-versions }} /tmp/php-${{ matrix.php-versions }}
           cd php-${{ matrix.php-versions }} || exit
           sudo chmod a+x *.sh
           ./install.sh
@@ -97,21 +122,26 @@ jobs:
     if: "!contains(github.event.head_commit.message, 'skip-release')"
     needs: test
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-versions: ['5.3', '5.4', '5.5']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Package and ship
+      - name: Package
         run: |
-          bash .github/scripts/install_zstd.sh
+          bash scripts/install-zstd.sh
           mkdir builds
-          for v in 5.3 5.4 5.5; do
-            gh release download -p php-$v-build.tar.zst -D php-$v
-            sudo XZ_OPT=-e9 tar cfJ php-$v.tar.xz php-$v
-            sudo tar cf - php-$v | zstd -22 -T0 --ultra > php-$v.tar.zst
-            mv php-$v.tar.* ./builds/
-          done
+          bash scripts/version-files.sh "$PHP_VERSION"
+          bash scripts/stage.sh "$PHP_VERSION"
+          gh release download -p php-"$PHP_VERSION"-build.tar.zst -D php-"$PHP_VERSION"
+          sudo XZ_OPT=-e9 tar cfJ php-"$PHP_VERSION".tar.xz php-"$PHP_VERSION"
+          sudo tar cf - php-"$PHP_VERSION" | zstd -22 -T0 --ultra > php-"$PHP_VERSION".tar.zst
+          mv php-"$PHP_VERSION".tar.* ./builds/
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PHP_VERSION: ${{ matrix.php-versions }}
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
@@ -135,13 +165,13 @@ jobs:
           for asset in ./builds/*; do
             assets+=("$asset")
           done
+          assets+=("./install.sh")
           gh release download -p "release.log" || true
           echo "$(date "+%Y-%m-%d %H:%M:%S") Update ${assets[@]}" | sudo tee -a release.log >/dev/null 2>&1
           assets+=("./release.log")
           exists=$(gh release list | grep -Po 'builds' | head -n 1)
           if [ "x$exists" != "xbuilds" ]; then
-            assets+=("./install.sh")
-            gh release create "builds" install.sh "${assets[@]}" -n "builds" -t "builds"
+            gh release create "builds" "${assets[@]}" -n "builds" -t "builds"
           else
             gh release upload "builds" "${assets[@]}" --clobber
           fi
