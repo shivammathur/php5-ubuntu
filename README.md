@@ -1,7 +1,7 @@
 # PHP5 for ubuntu
 
 <a href="https://github.com/shivammathur/php5-ubuntu" title="php5 install scripts for ubuntu"><img alt="Build status" src="https://github.com/shivammathur/php5-ubuntu/workflows/Test/badge.svg"></a>
-<a href="https://github.com/shivammathur/php5-ubuntu/blob/master/LICENSE" title="license"><img alt="LICENSE" src="https://img.shields.io/badge/license-MIT-428f7e.svg"></a>
+<a href="https://github.com/shivammathur/php5-ubuntu/blob/main/LICENSE" title="license"><img alt="LICENSE" src="https://img.shields.io/badge/license-MIT-428f7e.svg"></a>
 <a href="https://github.com/shivammathur/php5-ubuntu#usage" title="Install builds"><img alt="PHP Versions Supported" src="https://img.shields.io/badge/php-5.3, 5.4 and 5.5-8892BF.svg"></a>
 
 > Scripts to install end of life PHP versions.
@@ -34,9 +34,9 @@ curl -sSL https://github.com/shivammathur/php5-ubuntu/releases/latest/download/i
 
 ## Dependencies
 
-- [PHP 5.3 libraries](https://github.com/shivammathur/php5-ubuntu/tree/master/php-5.3/deps "Libraries for PHP 5.3")
-- [PHP 5.4 libraries](https://github.com/shivammathur/php5-ubuntu/tree/master/php-5.4/deps "Libraries for PHP 5.4")
-- [PHP 5.5 libraries](https://github.com/shivammathur/php5-ubuntu/tree/master/php-5.5/deps "Libraries for PHP 5.5")
+- [PHP 5.3 libraries](https://github.com/shivammathur/php5-ubuntu/tree/main/php-5.3/deps "Libraries for PHP 5.3")
+- [PHP 5.4 libraries](https://github.com/shivammathur/php5-ubuntu/tree/main/php-5.4/deps "Libraries for PHP 5.4")
+- [PHP 5.5 libraries](https://github.com/shivammathur/php5-ubuntu/tree/main/php-5.5/deps "Libraries for PHP 5.5")
 - [APCu](https://github.com/krakjoe/apcu "APCu PHP extension")
 - [Dotdeb](https://www.dotdeb.org/ "Dotdeb PHP releases")
 - [Imagick](https://github.com/Imagick/imagick "Imagick PHP extension")
