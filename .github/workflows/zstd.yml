@@ -1,0 +1,31 @@
+name: Cache ZSTD
+on:
+  - workflow_dispatch
+jobs:
+  cache:
+    container: ubuntu:${{ matrix.container }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        container: [20.04, 18.04, 16.04]
+    if: "!contains(github.event.head_commit.message, 'skip-build')"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install requirements
+        run: apt-get update && apt-get install sudo curl make gcc jq unzip -y
+      - name: Get ZSTD_DIR
+        id: zstd
+        run: echo "::set-output name=ZSTD_DIR::$(curl -sL https://github.com/facebook/zstd/releases/latest | grep -Po "zstd-(\d+\.\d+\.\d+)" | head -n 1)"
+      - name: Add ZSTD
+        env:
+          REPO: ${{ github.repository }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          USER: ${{ github.repository_owner }}
+        run: bash scripts/install-zstd.sh
+      - name: Upload zstd Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.zstd.outputs.zstd_dir }}-ubuntu${{ matrix.container }}
+          path: /opt/zstd
