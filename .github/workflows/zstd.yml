@@ -20,8 +20,8 @@ jobs:
         run: echo "::set-output name=ZSTD_DIR::$(curl -sL https://github.com/facebook/zstd/releases/latest | grep -Po "zstd-(\d+\.\d+\.\d+)" | head -n 1)"
       - name: Add ZSTD
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
           USER: ${{ github.repository_owner }}
         run: bash scripts/install-zstd.sh
       - name: Upload zstd Artifact

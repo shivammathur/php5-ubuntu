@@ -11,11 +11,11 @@ if [ "x$zstd_url" = "x" ]; then
     sudo make install -j"$(nproc)" PREFIX=/opt/zstd
   )
 else
-  curl -u "$USER":"$TOKEN" -o /tmp/zstd.zip -sL "$zstd_url"
+  curl -u "$USER":"$GITHUB_TOKEN" -o /tmp/zstd.zip -sL "$zstd_url"
   ls /tmp
   sudo unzip /tmp/zstd.zip -d /opt/zstd
   sudo chmod -R a+x /opt/zstd/bin
 fi
 sudo ln -sf /opt/zstd/bin/* /usr/local/bin
-rm -rf /tmp/zstd*
+sudo rm -rf /tmp/zstd*
 zstd -V

@@ -53,9 +53,11 @@ jobs:
       - name: Package and ship artifact to releases
         run: bash scripts/build.sh ship
         env:
-          PHP_VERSION: ${{ matrix.php-versions }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_WORKSPACE: ${{ github.workspace }}
+          PHP_VERSION: ${{ matrix.php-versions }}
+          REPO: ${{ github.repository }}
+          USER: ${{ github.repository_owner }}
 
       - name: Upload artifact to workflow
         uses: actions/upload-artifact@v2
