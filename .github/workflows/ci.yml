@@ -121,8 +121,8 @@ jobs:
           done
   package:
     name: Update dist
-    if: "always() && !contains(github.event.head_commit.message, 'skip-release')"
-    needs: test
+    if: "!contains(github.event.head_commit.message, 'skip-release')"
+    needs: [build-php, test]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -156,8 +156,8 @@ jobs:
           path: builds
   release:
     runs-on: ubuntu-latest
-    if: "always() && !contains(github.event.head_commit.message, 'skip-release')"
-    needs: package
+    if: "!contains(github.event.head_commit.message, 'skip-release')"
+    needs: [build-php, test, package]
     steps:
       - uses: actions/checkout@v2
       - run: mkdir builds
