@@ -93,6 +93,9 @@ jobs:
           ./install-php.sh
           ./post-install.sh
 
+      - name: Test libs
+        run: sudo apt-get -f install
+
       - name: Test versions and extensions
         run: |
           php$ver -v | head -n 1
