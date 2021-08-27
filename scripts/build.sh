@@ -37,14 +37,24 @@ get_buildflags() {
   echo "$flags"
 }
 
+pear_version() {
+  if [ "$PHP_VERSION" = "5.3" ]; then
+    echo v1.9.7
+  else
+    echo master
+  fi
+}
+
 setup_pear() {
   sudo rm -rf "$install_dir"/bin/pear "$install_dir"/bin/pecl
   sudo mkdir -p /usr/local/ssl
   sudo chmod -R 777 /usr/local/ssl
   sudo curl -fsSL --retry "$tries" -o /usr/local/ssl/cert.pem https://curl.haxx.se/ca/cacert.pem
-  sudo curl -fsSL --retry "$tries" -O https://github.com/pear/pearweb_phars/raw/v1.9.7/go-pear.phar
+  sudo curl -fsSL --retry "$tries" -O https://github.com/pear/pearweb_phars/raw/"$(pear_version)"/go-pear.phar
   sudo chmod a+x scripts/install-pear.expect
   scripts/install-pear.expect "$install_dir"
+  # Patch pear binaries to check extensions without -n as xml is built as a shared extension.
+  sed -i "$ s|\-n||g" "$install_dir"/bin/pecl "$install_dir"/bin/pear "$install_dir"/bin/peardev
   rm go-pear.phar
   sudo "$install_dir"/bin/pear config-set php_ini "$install_dir"/etc/php.ini system
   sudo "$install_dir"/bin/pear channel-update pear.php.net
