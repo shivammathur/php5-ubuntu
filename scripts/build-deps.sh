@@ -8,12 +8,6 @@ install_pkg() {
   )
 }
 
-add_autoconf() {
-  curl -o /tmp/autoconf.tar.gz -sL https://ftp.gnu.org/gnu/autoconf/autoconf-2.59.tar.gz
-  tar -xzf /tmp/autoconf.tar.gz -C /tmp
-  install_pkg /tmp/autoconf-2.59
-}
-
 add_icu() {
   curl -o /tmp/icu.tgz -sL https://github.com/unicode-org/icu/releases/download/release-52-2/icu4c-52_2-src.tgz
   tar -xzf /tmp/icu.tgz -C /tmp
@@ -41,7 +35,7 @@ add_openssl() {
 mode="${1:-all}"
 DESTDIR="${2:-}"
 
-packages=(autoconf icu bison openssl)
+packages=(icu bison openssl)
 if [ "$mode" = "all" ]; then
   for package in "${packages[@]}"; do
     add_"${package}"

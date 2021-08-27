@@ -14,6 +14,29 @@ version_files() {
   "$SCRIPT_DIR"/version-files.sh "$PHP_VERSION"
 }
 
+get_buildflags() {
+  type=$1
+  debug=${2:-false}
+  lto=${3:--lto}
+  flags=$(dpkg-buildflags --get "$type")
+
+  # Add or remove flag for debug symbols.
+  if [ "$debug" = "false" ]; then
+    flags=${flags/-g/}
+  else
+    flags="$flags -g"
+  fi
+
+  # Add or remove lto optimization flags.
+  if [ "$lto" = "-lto" ]; then
+    flags=$(echo "$flags" | sed -E 's/[^ ]+lto[^ ]+ //g')
+  else
+    flags="$flags -flto=auto -ffat-lto-objects"
+  fi
+
+  echo "$flags"
+}
+
 setup_pear() {
   sudo rm -rf "$install_dir"/bin/pear "$install_dir"/bin/pecl
   sudo mkdir -p /usr/local/ssl
@@ -60,6 +83,8 @@ configure_apache_fpm() {
 
 build_apache_fpm() {
   export PHP_BUILD_APXS="/usr/bin/apxs2"
+  export APACHE_CONFDIR="/etc/apache2"
+  . /etc/apache2/envvars
   cp /usr/local/share/php-build/default_configure_options.bak /usr/local/share/php-build/default_configure_options
   sudo mkdir -p "$install_dir" "$install_dir"/etc/apache2/mods-available "$install_dir"/etc/apache2/sites-available "$install_dir"/usr/lib/cgi-bin /usr/local/ssl /var/lib/apache2 /run/php/
   sudo chmod -R 777 /usr/local/php /usr/local/ssl /usr/include/apache2 /usr/lib/apache2 /etc/apache2/ /var/lib/apache2 /var/log/apache2
@@ -70,11 +95,39 @@ build_apache_fpm() {
 }
 
 build_php() {
-  export PHP_BUILD_ZTS_ENABLE=off
+  # Set and export FLAGS
+  CFLAGS="$(get_buildflags CFLAGS "$debug" "$lto") $(getconf LFS_CFLAGS)"
+  CPPFLAGS="$(get_buildflags CPPFLAGS "$debug" "$lto")"
+  CXXFLAGS="$(get_buildflags CXXFLAGS "$debug" "$lto")"
+  LDFLAGS="$(get_buildflags LDFLAGS "$debug" "$lto") -Wl,-z,now -Wl,--as-needed -pthread"
+  EXTRA_CFLAGS="-Wall -fsigned-char -fno-strict-aliasing -Wno-missing-field-initializers -pthread"
+  PHP_BUILD_ZTS_ENABLE=off
+  export CFLAGS
+  export CPPFLAGS
+  export CXXFLAGS
+  export LDFLAGS
+  export EXTRA_CFLAGS
+  export PHP_BUILD_ZTS_ENABLE
   if ! php-build -v -i production "$PHP_VERSION" "$install_dir"; then
     echo 'Failed to build PHP'
     exit 1
   fi
+}
+
+configure_extensions() {
+  ext_dir=$("$install_dir"/bin/php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
+  rm -rf "$install_dir"/etc/conf.d/*.ini
+  for extension_path in "$ext_dir"/*.so; do
+    extension="$(basename "$extension_path" | cut -d '.' -f 1)"
+    priority='20'
+    [[ "$extension" =~ ^(pdo|mysqlnd)$ ]] && priority='10'
+    [ "$extension" = 'xml' ] && priority='15'
+    prefix='extension'
+    [[ "$extension" =~ ^(xdebug|opcache)$ ]] && prefix='zend_extension'
+    if ! [ -e "$install_dir/etc/conf.d/$priority-$extension.ini" ]; then
+      echo "$prefix=$ext_dir/$extension.so" | sudo tee "$install_dir/etc/conf.d/$priority-$extension.ini"
+    fi
+  done
 }
 
 merge_sapi() {
@@ -113,6 +166,8 @@ build_and_ship_package() {
 
 mode="${1:-all}"
 install_dir=/usr/local/php/"$PHP_VERSION"
+debug=false
+lto=-lto
 tries=10
 
 if [[ "$mode" = "all" || "$mode" = "version-files" ]]; then
@@ -140,6 +195,7 @@ fi
 if [[ "$mode" = "all" || "$mode" = "merge-sapi" ]]; then
   merge_sapi
   configure_php
+  configure_extensions
 fi
 
 if [[ "$mode" = "all" || "$mode" = "build-extensions" ]]; then
