@@ -144,6 +144,7 @@ configure_php() {
     echo "date.timezone=UTC"
     echo "memory_limit=-1"
   ) >>"$install_dir"/etc/php.ini
+  configure_extensions
   setup_pear
   sudo ln -sf "$install_dir"/bin/* /usr/bin/
   sudo ln -sf "$install_dir"/etc/php.ini /etc/php.ini
@@ -195,7 +196,6 @@ fi
 if [[ "$mode" = "all" || "$mode" = "merge-sapi" ]]; then
   merge_sapi
   configure_php
-  configure_extensions
 fi
 
 if [[ "$mode" = "all" || "$mode" = "build-extensions" ]]; then
