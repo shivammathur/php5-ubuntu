@@ -54,7 +54,7 @@ setup_pear() {
   sudo chmod a+x scripts/install-pear.expect
   scripts/install-pear.expect "$install_dir"
   # Patch pear binaries to check extensions without -n as xml is built as a shared extension.
-  sed -i "$ s|\-n||g" "$install_dir"/bin/pecl "$install_dir"/bin/pear "$install_dir"/bin/peardev
+  sed -i "s|\-n||g" "$install_dir"/bin/pecl "$install_dir"/bin/pear "$install_dir"/bin/peardev
   rm go-pear.phar
   sudo "$install_dir"/bin/pear config-set php_ini "$install_dir"/etc/php.ini system
   sudo "$install_dir"/bin/pear channel-update pear.php.net
