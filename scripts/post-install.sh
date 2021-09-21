@@ -7,12 +7,12 @@ sudo cp -fp "$prefix"/usr/lib/cgi-bin/php"$v" /usr/lib/cgi-bin/php"$v"
 for tool in pear peardev pecl php phar phar.phar php-cgi php-fpm php-config phpize switch_sapi; do
   if [ -e "$prefix"/bin/"$tool" ]; then
     sudo cp -fp "$prefix"/bin/"$tool" /usr/bin/"$tool$v"
-    sudo update-alternatives --install /usr/bin/"$tool" "$tool" /usr/bin/"$tool$v" 50
+    sudo update-alternatives --install /usr/bin/"$tool" "$tool" /usr/bin/"$tool$v" "${v/./}"
     sudo update-alternatives --set "$tool" /usr/bin/"$tool$v"
   fi
 done
-sudo update-alternatives --install /usr/lib/cgi-bin/php php-cgi-bin /usr/lib/cgi-bin/php"$v" 50
-sudo update-alternatives --install /usr/lib/libphp5.so libphp5 "$prefix"/usr/lib/libphp"$v".so 50 && sudo ldconfig
+sudo update-alternatives --install /usr/lib/cgi-bin/php php-cgi-bin /usr/lib/cgi-bin/php"$v" "${v/./}"
+sudo update-alternatives --install /usr/lib/libphp5.so libphp5 "$prefix"/usr/lib/libphp"$v".so "${v/./}" && sudo ldconfig
 sudo update-alternatives --set php-cgi-bin /usr/lib/cgi-bin/php"$v"
 sudo ln -sf "$prefix"/include/php /usr/include/php/"$api_suffix"
 ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")

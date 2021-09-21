@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        container: [20.04, 18.04, 16.04]
+        container: [20.04, 18.04]
     if: "!contains(github.event.head_commit.message, 'skip-build')"
     steps:
       - name: Checkout
