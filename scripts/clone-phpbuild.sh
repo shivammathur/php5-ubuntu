@@ -2,5 +2,5 @@
 
 [ ! -d ~/php-build ] || return 0
 
-git clone git://github.com/php-build/php-build ~/php-build
+git clone -b php5 https://github.com/shivammathur/php-build ~/php-build
 cd ~/php-build && sudo ./install.sh

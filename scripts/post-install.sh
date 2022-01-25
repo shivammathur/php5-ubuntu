@@ -3,7 +3,7 @@ prefix=/usr/local/php/"$v"
 api_suffix="$(find "$prefix"/lib/php/extensions -type d -regextype posix-egrep -regex ".*[0-9]{8}" | rev | cut -d'-' -f 1 | rev)"
 sudo rm -rf /usr/bin/pecl /usr/bin/pear* 2>/dev/null || true
 sudo cp -fp switch_sapi php-fpm-socket-helper "$prefix"/bin/
-sudo cp -fp "$prefix"/usr/lib/cgi-bin/php"$v" /usr/lib/cgi-bin/php"$v"
+sudo cp -a "$prefix"/usr/lib/* /usr/lib/
 for tool in pear peardev pecl php phar phar.phar php-cgi php-fpm php-config phpize switch_sapi; do
   if [ -e "$prefix"/bin/"$tool" ]; then
     sudo cp -fp "$prefix"/bin/"$tool" /usr/bin/"$tool$v"
