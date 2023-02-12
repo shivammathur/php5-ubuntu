@@ -3,7 +3,7 @@ sudo mkdir -p /opt/zstd
 zstd_dir="zstd-$(curl -sL https://github.com/facebook/zstd/releases/latest | grep -Po "tree/v(\d+\.\d+\.\d+)" | cut -d'v' -f 2 | head -n 1)"
 zstd_url=$(curl -sL https://api.github.com/repos/"$REPO"/actions/artifacts | jq -r --arg zstd_dir "$zstd_dir-ubuntu$VERSION_ID" '.artifacts[] | select(.name=="\($zstd_dir)").archive_download_url' 2>/dev/null | head -n 1)
 if [ "x$zstd_url" = "x" ]; then
-  sudo apt-get install zlib1g liblzma-dev liblz4-dev -y
+  sudo apt-get install zlib1g-dev liblzma-dev liblz4-dev -y
   curl -o /tmp/zstd.tar.gz -sL https://github.com/facebook/zstd/releases/latest/download/"$zstd_dir".tar.gz
   tar -xzf /tmp/zstd.tar.gz -C /tmp
   (
