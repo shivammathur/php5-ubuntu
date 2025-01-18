@@ -8,6 +8,7 @@ build_extension() {
   (
     cd "$source_dir" || exit
     phpize
+    fix_config_files
     sudo ./configure "${args[@]}" --with-php-config="$install_dir"/bin/php-config
     sudo make -j"$(nproc)"
     sudo make install
@@ -26,6 +27,7 @@ build_lib() {
   mkdir "$install_dir"/lib/"$lib"
   (
     cd "$source_dir" || exit
+    fix_config_files
     sudo ./configure --prefix="$install_dir"/lib/"$lib" "$@"
     sudo make -j"$(nproc)"
     sudo make install
@@ -138,6 +140,12 @@ add_redis() {
   curl -o /tmp/redis.tgz -sL https://pecl.php.net/get/redis-"$REDIS_VERSION".tgz
   tar -xzf /tmp/redis.tgz -C /tmp
   build_extension redis /tmp/redis-"$REDIS_VERSION" extension 20 --enable-redis --enable-redis-igbinary
+}
+
+fix_config_files() {
+  for conf_file in config.guess config.sub; do
+    find . -name "$conf_file" -exec cp /usr/share/automake-*/"$conf_file" {} \;
+  done
 }
 
 PHP_VERSION=${PHP_VERSION:-'5.3'}

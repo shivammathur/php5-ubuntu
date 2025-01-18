@@ -166,13 +166,15 @@ build_extensions() {
 
 build_and_ship_package() {
   bash scripts/install-zstd.sh
+  arch="$(arch)"
+  [[ "$arch" = "arm64" || "$arch" = "aarch64" ]] && arch_suffix="-arm64" || arch_suffix=""
   (
     cd "$install_dir"/.. || exit
-    sudo tar cf - "$PHP_VERSION" | zstd -22 -T0 --ultra > "$GITHUB_WORKSPACE"/php-"$PHP_VERSION"-build.tar.zst
+    sudo tar cf - "$PHP_VERSION" | zstd -22 -T0 --ultra > "$GITHUB_WORKSPACE"/php-"$PHP_VERSION"-build"$arch_suffix".tar.zst
   )
   gh release download -p "release.log" || true
-  echo "$(date "+%Y-%m-%d %H:%M:%S") Update php-$PHP_VERSION-build.tar.zst" | sudo tee -a release.log >/dev/null 2>&1
-  gh release upload "builds" release.log "php-$PHP_VERSION-build.tar.zst" --clobber
+  echo "$(date "+%Y-%m-%d %H:%M:%S") Update php-$PHP_VERSION-build$arch_suffix.tar.zst" | sudo tee -a release.log >/dev/null 2>&1
+  gh release upload "builds" release.log "php-$PHP_VERSION-build$arch_suffix.tar.zst" --clobber
 }
 
 mode="${1:-all}"

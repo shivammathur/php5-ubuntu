@@ -21,6 +21,8 @@ install() {
   )
 }
 
-tar_file="php-$1.tar.zst"
+arch="$(arch)"
+[[ "$arch" = "arm64" || "$arch" = "aarch64" ]] && arch_suffix="-arm64" || arch_suffix=""
+tar_file="php-$1$arch_suffix.tar.zst"
 php_dir="/tmp/php-$1"
 install

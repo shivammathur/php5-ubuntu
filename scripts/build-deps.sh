@@ -2,6 +2,7 @@ install_pkg() {
   pkg_dir=$1
   (
     cd "$pkg_dir" || exit 1
+    fix_config_files
     sudo ./configure --prefix=/usr
     sudo make -j"$(nproc)"
     sudo make install DESTDIR="$DESTDIR"
@@ -25,11 +26,18 @@ add_openssl() {
   tar -xzf /tmp/openssl.tar.gz -C /tmp
   (
     cd /tmp/openssl-1.0.2u || exit 1
+    fix_config_files
     ./config --prefix=/usr --openssldir=/etc/ssl --libdir=lib/openssl-1.0 shared zlib-dynamic
     make depend
     sudo make -j"$(nproc)"
     sudo make install INSTALL_PREFIX="$DESTDIR"
   )
+}
+
+fix_config_files() {
+  for conf_file in config.guess config.sub; do
+    find . -name "$conf_file" -exec cp /usr/share/automake-*/"$conf_file" {} \;
+  done
 }
 
 mode="${1:-all}"

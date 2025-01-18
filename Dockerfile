@@ -1,6 +1,6 @@
-ARG UBUNTU_VERSION=trusty
+ARG UBUNTU_VERSION=ubuntu:trusty
 ARG PHP_VERSION=5.3
-FROM ubuntu:$UBUNTU_VERSION AS base
+FROM $UBUNTU_VERSION AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LC_ALL=C.UTF-8
@@ -15,18 +15,19 @@ RUN apt-get update && apt-get install -y wget ca-certificates \
 FROM base AS deps
 RUN apt-get update && apt-get install -y --no-install-recommends sudo curl software-properties-common
 RUN add-apt-repository ppa:ubuntu-toolchain-r/test
-RUN apt-get update && apt-get install -y --no-install-recommends apache2-mpm-prefork apache2-dev build-essential automake autoconf bison chrpath dpkg-dev flex bzip2 git m4 make libstdc++6-4.7-dev gcc-4.7 g++-4.7 gettext expect imagemagick libmagickwand-dev locales language-pack-de re2c mysql-server postgresql pkg-config libc-client2007e-dev libcurl4-gnutls-dev libacl1-dev libapache2-mod-php5 libapr1-dev libasn1-8-heimdal libattr1-dev libblkid1 libbz2-dev libc6 libcap2 libc-bin libclass-isa-perl libcomerr2 libdb-dev libdbus-1-3 libdebian-installer4 libdrm2 libdrm-intel1 libdrm-nouveau2 libdrm-radeon1 libevent-dev libexpat1-dev libenchant-dev libffi-dev libfreetype6-dev libgcc1 libgcrypt11-dev libgearman-dev libqdbm-dev libglib2.0-0 libgnutls-dev libgpg-error0 libgssapi3-heimdal libgssapi-krb5-2 libgmp-dev libhcrypto4-heimdal libheimbase1-heimdal libheimntlm0-heimdal libhx509-5-heimdal libidn11-dev libk5crypto3 libkeyutils1 libklibc libkrb5-26-heimdal libkrb5-dev libkrb5support0 libldb-dev libldap2-dev libltdl-dev liblzma-dev libmagic-dev libmount-dev libonig-dev libmysqlclient-dev libncurses5-dev libncursesw5 libnewt-dev libnih-dev libnih-dbus1 libodbc1 libp11-kit0 libpam0g libpam-modules libpam-modules-bin libpciaccess0 libpcre3-dev libplymouth-dev libpng12-dev libjpeg-dev libmcrypt-dev libmhash-dev libpspell-dev libpthread-stubs0-dev libpq-dev libreadline-dev librecode-dev libroken18-heimdal libsasl2-dev libselinux1-dev libslang2-dev libsqlite0-dev libsqlite3-dev libssl-dev libswitch-perl libsybdb5 libtasn1-6 libtextwrap-dev libtidy-dev libtinfo-dev libudev-dev libuuid1 libwind0-heimdal libxml2-dev libxpm-dev libxslt1-dev libzip-dev unixodbc-dev zlib1g
+RUN apt-get update && apt-get install -y --no-install-recommends apache2-mpm-prefork apache2-dev build-essential automake autoconf bison chrpath dpkg-dev flex bzip2 git m4 make libstdc++6-4.7-dev gcc-4.7 g++-4.7 gettext expect imagemagick libmagickwand-dev locales language-pack-de re2c mysql-server postgresql pkg-config libc-client2007e-dev libcurl4-gnutls-dev libacl1-dev libapache2-mod-php5 libapr1-dev libasn1-8-heimdal libattr1-dev libblkid1 libbz2-dev libc6 libcap2 libc-bin libclass-isa-perl libcomerr2 libdb-dev libdbus-1-3 libdebian-installer4 libevent-dev libexpat1-dev libenchant-dev libffi-dev libfreetype6-dev libgcc1 libgcrypt11-dev libgearman-dev libqdbm-dev libglib2.0-0 libgnutls-dev libgpg-error0 libgssapi3-heimdal libgssapi-krb5-2 libgmp-dev libhcrypto4-heimdal libheimbase1-heimdal libheimntlm0-heimdal libhx509-5-heimdal libidn11-dev libk5crypto3 libkeyutils1 libklibc libkrb5-26-heimdal libkrb5-dev libkrb5support0 libldb-dev libldap2-dev libltdl-dev liblzma-dev libmagic-dev libmount-dev libonig-dev libmysqlclient-dev libncurses5-dev libncursesw5 libnewt-dev libnih-dev libnih-dbus1 libodbc1 libp11-kit0 libpam0g libpam-modules libpam-modules-bin libpciaccess0 libpcre3-dev libplymouth-dev libpng12-dev libjpeg-dev libmcrypt-dev libmhash-dev libpspell-dev libpthread-stubs0-dev libpq-dev libreadline-dev librecode-dev libroken18-heimdal libsasl2-dev libselinux1-dev libslang2-dev libsqlite0-dev libsqlite3-dev libssl-dev libswitch-perl libsybdb5 libtasn1-6 libtextwrap-dev libtidy-dev libtinfo-dev libudev-dev libuuid1 libwind0-heimdal libxml2-dev libxpm-dev libxslt1-dev libzip-dev unixodbc-dev zlib1g
 RUN set -x \
+    && arch="$(uname -m)" \
 	&& sed -i '/^mozilla\/DST_Root_CA_X3/s/^/!/' /etc/ca-certificates.conf \
 	&& update-ca-certificates -f \
 	&& update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.7 4 \
 	&& update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.7 4 \
-	&& find /usr/lib/x86_64-linux-gnu -maxdepth 1 -name "*.so" -printf "%f\n" | xargs -I@ ln -sf /usr/lib/x86_64-linux-gnu/@ /usr/lib/@ \
-	&& ln -sf /usr/lib/libc-client.so.2007e.0 /usr/lib/x86_64-linux-gnu/libc-client.a \
+	&& find /usr/lib/"$arch"-linux-gnu -maxdepth 1 -name "*.so" -printf "%f\n" | xargs -I@ ln -sf /usr/lib/"$arch"-linux-gnu/@ /usr/lib/@ \
+	&& ln -sf /usr/lib/libc-client.so.2007e.0 /usr/lib/"$arch"-linux-gnu/libc-client.a \
 	&& mkdir -p /usr/c-client/ /usr/include/freetype2/freetype \
 	&& ln -sf /usr/lib/libc-client.so.2007e.0 /usr/c-client/libc-client.a \
 	&& ln -sf /usr/include/qdbm/* /usr/include/ \
-	&& ln -sf /usr/include/x86_64-linux-gnu/gmp.h /usr/include/gmp.h \
+	&& ln -sf /usr/include/"$arch"-linux-gnu/gmp.h /usr/include/gmp.h \
 	&& ln -sf /usr/include/freetype2/freetype.h /usr/include/freetype2/freetype/freetype.h \
 	&& exit 0
 
