@@ -10,7 +10,7 @@ else
   arch="amd64"
   arch_name=""
 fi
-[[ "$VERSION_ID" = "20.04" || "$VERSION_ID" = "22.04" || $VERSION_ID = "24.04" ]] && $dpkg_install ./deps/"$VERSION_ID"/multiarch-support_2.28-10_"$arch"
+[[ "$VERSION_ID" = "22.04" || $VERSION_ID = "24.04" ]] && $dpkg_install ./deps/"$VERSION_ID"/multiarch-support_2.28-10_"$arch"
 $dpkg_install ./deps/"$VERSION_ID"/*_"$arch".deb
 $dpkg_install ./deps/all/*_"$arch".deb
 sudo tar -I zstd -xf ./php-@PHP_VERSION@-build"$arch_name".tar.zst -C /usr/local/php
