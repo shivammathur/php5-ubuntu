@@ -11,7 +11,7 @@ get() {
 }
 
 install() {
-  get "/tmp/$tar_file" "https://github.com/shivammathur/php5-ubuntu/releases/download/builds/$tar_file"
+  get "/tmp/$tar_file" "https://github.com/shivammathur/php5-ubuntu/releases/download/builds/$tar_file" "https://artifacts.php5-ubuntu.setup-php.com/$tar_file" "https://artifacts.setup-php.com/php5-ubuntu/$tar_file"
   sudo tar -I zstd -xf "/tmp/$tar_file" -C /tmp
   (
     cd "$php_dir" || exit
