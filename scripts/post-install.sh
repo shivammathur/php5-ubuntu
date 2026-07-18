@@ -1,6 +1,6 @@
 v=@PHP_VERSION@
 prefix=/usr/local/php/"$v"
-api_suffix="$(find "$prefix"/lib/php/extensions -type d -regextype posix-egrep -regex ".*[0-9]{8}" | rev | cut -d'-' -f 1 | rev)"
+api_suffix="$(find "$prefix"/lib/php/extensions -type d -regextype posix-egrep -regex ".*[0-9]{8}" -printf "%f\n" | sed "s/.*-//")"
 sudo rm -rf /usr/bin/pecl /usr/bin/pear* 2>/dev/null || true
 sudo cp -fp switch_sapi php-fpm-socket-helper "$prefix"/bin/
 sudo cp -a "$prefix"/usr/lib/* /usr/lib/
