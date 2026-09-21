@@ -122,7 +122,9 @@ jobs:
           ./post-install.sh
 
       - name: Test libs
-        run: sudo apt-get -f install
+        run: |
+          sudo apt-get check
+          test -z "$(dpkg --audit)"
 
       - name: Test versions and extensions
         run: |
@@ -152,7 +154,7 @@ jobs:
           done
   package:
     name: Update dist
-    if: "!contains(github.event.head_commit.message, 'skip-release')"
+    if: ${{ !cancelled() && (needs.build-php.result == 'success' || needs.build-php.result == 'skipped') && needs.test.result == 'success' && !contains(github.event.head_commit.message, 'skip-release') }}
     needs: [build-php, test]
     runs-on: ${{ matrix.os }}
     strategy:
@@ -190,7 +192,7 @@ jobs:
           path: builds
   release:
     runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, 'skip-release')"
+    if: ${{ !cancelled() && needs.test.result == 'success' && needs.package.result == 'success' && !contains(github.event.head_commit.message, 'skip-release') }}
     needs: [build-php, test, package]
     steps:
       - uses: actions/checkout@v4
