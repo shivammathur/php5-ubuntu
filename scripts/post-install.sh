@@ -14,6 +14,7 @@ done
 sudo update-alternatives --install /usr/lib/cgi-bin/php php-cgi-bin /usr/lib/cgi-bin/php"$v" "${v/./}"
 sudo update-alternatives --install /usr/lib/libphp5.so libphp5 "$prefix"/usr/lib/libphp"$v".so "${v/./}" && sudo ldconfig
 sudo update-alternatives --set php-cgi-bin /usr/lib/cgi-bin/php"$v"
+sudo mkdir -p /usr/include/php
 sudo ln -sf "$prefix"/include/php /usr/include/php/"$api_suffix"
 ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
 sudo chmod 777 "$ini_file" /usr/bin/switch_sapi "$prefix"/bin/php-fpm-socket-helper
