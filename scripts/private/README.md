@@ -1,0 +1,13 @@
+# Private PHP 5 staging
+
+`stage-private.yml` builds one explicitly selected PHP 5.3, 5.4 or 5.5 series on native Intel and ARM runners, then tests installation from the exact uploaded packages. It follows the php-builder private staging protocol: an immutable source/commit/matrix plan, captured private logs, conditional object writes with round-trip hash verification, test-to-package binding, and HMAC-signed readiness. Readiness is not public release approval.
+
+The branch is `feature/private-r2-releases`; ordinary pushes validate the coordinator only. Builds require workflow_dispatch. The existing public release workflows are not invoked. No GitHub artifacts, Actions caches, release uploads or Cloudsmith writes are used. Sources, source-derived files, packages, diagnostics and receipts remain in the private `php-darwin-private` R2 bucket under this repository's namespace.
+
+Configure repository secrets `PRIVATE_R2_ENDPOINT`, `PRIVATE_R2_ACCESS_KEY_ID`, `PRIVATE_R2_SECRET_ACCESS_KEY`, `PRIVATE_RELEASE_SIGNING_KEY` (64 hex characters), and `PRIVATE_SOURCE_MANIFEST_KEY`. The latter identifies a content-addressed JSON object under `uploads/manifests/`, binding each exact version/name/root/size/SHA256 to its immutable source object. Source identities are read privately rather than exposed as Actions dispatch inputs. Do not put source archives or private patch payloads in this checkout.
+
+Each attempt uses `<repository>/builds/<run>-<attempt>/`: `plan.json`, `packages/<architecture>/`, `results/`, `diagnostics/`, `logs/`, then `ready.json`. Never reuse an uncertain dispatch or mix another run's results. Failed attempts keep their private logs and cannot become ready. The supervisor emits only fixed public status messages and uploads its captured output on normal failure and its bounded child timeout. A runner loss can still interrupt final upload; record that gap explicitly.
+
+The subprocess build/test environment excludes R2/signing credentials and Actions tokens. Generated contexts and source bootstrap work are job-local; no registry cache export is permitted. Source-bootstrap and distribution-patch changes must be reviewed independently of the security payload. PHP5 packaging layout and existing installer behavior are preserved.
+
+For a completed run, verify signed readiness against the exact source release and workflow revision, inspect all package hashes/architectures/permissions and native test evidence, archive/audit the public workflow log privately, then remove the public run if cleanup is requested. Never tail private diagnostics into Actions output or relax the plan/test gates. No production promotion or cron restart is included.

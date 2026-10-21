@@ -2,6 +2,7 @@ name: Test
 on:
   workflow_dispatch:
   push:
+    branches-ignore: [feature/private-r2-releases]
 jobs:
   build-php:
     if: "!contains(github.event.head_commit.message, 'skip-build-php')"

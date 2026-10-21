@@ -1,0 +1,91 @@
+name: Stage private PHP 5
+run-name: Stage private PHP ${{ inputs.php-version }}
+on:
+  push:
+    branches: [feature/private-r2-releases]
+  workflow_dispatch:
+    inputs:
+      php-version:
+        description: PHP minor from the approved private source manifest
+        required: true
+        type: choice
+        options: ['5.3', '5.4', '5.5']
+permissions:
+  contents: read
+concurrency:
+  group: private-stage-${{ inputs.php-version || github.sha }}
+  cancel-in-progress: false
+env:
+  PRIVATE_PROJECT: php5-ubuntu
+  PRIVATE_BUILD_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+  PHP_VERSION: ${{ inputs.php-version }}
+  PRIVATE_SOURCE_MANIFEST_KEY: ${{ secrets.PRIVATE_SOURCE_MANIFEST_KEY }}
+  PRIVATE_R2_ENDPOINT: ${{ secrets.PRIVATE_R2_ENDPOINT }}
+  PRIVATE_R2_ACCESS_KEY_ID: ${{ secrets.PRIVATE_R2_ACCESS_KEY_ID }}
+  PRIVATE_R2_SECRET_ACCESS_KEY: ${{ secrets.PRIVATE_R2_SECRET_ACCESS_KEY }}
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: python3 scripts/private/test_contracts.py
+  plan:
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      builds: ${{ steps.plan.outputs.builds }}
+      tests: ${{ steps.plan.outputs.tests }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: plan
+        run: python3 scripts/private/run.py plan python3 scripts/private/stage.py plan
+  build:
+    needs: plan
+    name: Build ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.builds) }}
+    env:
+      PRIVATE_JOB_ID: ${{ matrix.id }}
+      PRIVATE_CHILD_TIMEOUT: 19800
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: python3 scripts/private/run.py "build-$PRIVATE_JOB_ID" python3 scripts/private/stage.py build
+  test:
+    needs: [plan, build]
+    name: Install and test ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 70
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.tests) }}
+    env:
+      PRIVATE_JOB_ID: ${{ matrix.id }}
+      PRIVATE_CHILD_TIMEOUT: 3600
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: python3 scripts/private/run.py "test-$PRIVATE_JOB_ID" python3 scripts/private/stage.py test
+  ready:
+    needs: [plan, build, test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - env:
+          PRIVATE_RELEASE_SIGNING_KEY: ${{ secrets.PRIVATE_RELEASE_SIGNING_KEY }}
+        run: python3 scripts/private/run.py ready python3 scripts/private/stage.py ready

@@ -1,0 +1,6 @@
+{
+  "project": "php5-ubuntu",
+  "dependencies": {
+    "php_build_commit": "f4093b2e85b09e698307b65be47c58668d1aa4ff"
+  }
+}
