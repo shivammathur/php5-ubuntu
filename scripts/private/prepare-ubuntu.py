@@ -42,3 +42,12 @@ s=s.replace('apply_patches "$source_path" 2>&4', 'apply_patches "$source_path" 2
 open(p,'w').write(s)
 CHECK
 ''';p.write_text(s)
+
+# Git exports require regenerated parsers. Bison 1.75 fails on these grammars;
+# 2.6.4 is accepted by all three branch configure checks.
+p=r/'scripts/build-deps.sh';text=p.read_text()
+text=text.replace('bison-1.75','bison-2.6.4')
+marker='  tar -xzf /tmp/bison.tar.gz -C /tmp'
+assert text.count(marker)==1
+text=text.replace(marker, '  echo "de2d15dfdcfc24405464cb95acc9d5ef31fb2e5be4aca6a530ec59bb57c30e5d  /tmp/bison.tar.gz" | sha256sum -c -\n'+marker)
+p.write_text(text)

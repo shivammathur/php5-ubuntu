@@ -1,6 +1,8 @@
 {
   "project": "php5-ubuntu",
   "dependencies": {
-    "php_build_commit": "f4093b2e85b09e698307b65be47c58668d1aa4ff"
+    "php_build_commit": "f4093b2e85b09e698307b65be47c58668d1aa4ff",
+    "bison_version": "2.6.4",
+    "bison_sha256": "de2d15dfdcfc24405464cb95acc9d5ef31fb2e5be4aca6a530ec59bb57c30e5d"
   }
 }
