@@ -1,0 +1,186 @@
+{
+  "repository": "shivammathur/php5-ubuntu",
+  "minor": "5.5",
+  "tag": "builds",
+  "release_id": 38043674,
+  "files": [
+    {
+      "name": "php-5.5-build.tar.zst",
+      "bytes": 13100914,
+      "sha256": "62538176d3c4ad2d68ae389361bb0604c92fa0b73b2c70044e18522059199b2a"
+    },
+    {
+      "name": "php-5.5.tar.xz",
+      "bytes": 55642688,
+      "sha256": "a22cd00de1a889aff659fe3762c881ae3668d83b4ae908d9f32b504ddda14892"
+    },
+    {
+      "name": "php-5.5.tar.zst",
+      "bytes": 55521177,
+      "sha256": "f3e31787340b09de4f90ac748512ecc2c21ab7e9c45117e89fe236c372fef148"
+    },
+    {
+      "name": "php-5.5-build-arm64.tar.zst",
+      "bytes": 12373983,
+      "sha256": "49e72318ac7d3c0b7009a6cefe73c291b16f435f26c35111172e8be797646d83"
+    },
+    {
+      "name": "php-5.5-arm64.tar.xz",
+      "bytes": 54751108,
+      "sha256": "21c5fa2dc0f7ee956d1e26ffb61da765fd29a35b1c6085bd6bb8279967dccc6c"
+    },
+    {
+      "name": "php-5.5-arm64.tar.zst",
+      "bytes": 54631405,
+      "sha256": "8464c94e1d309492f396ed080e9f3691cb1c429456fb29edfc1a6d7aa8914b9d"
+    }
+  ],
+  "before": {
+    "install.sh": {
+      "id": 579112630,
+      "size": 778,
+      "digest": "sha256:4015ee2daa381d9a74b6c1a1cabe682a939d2ab369b642367edf6c6d3b746ae5",
+      "state": "uploaded"
+    },
+    "php-5.3-arm64.tar.xz": {
+      "id": 579112479,
+      "size": 45099860,
+      "digest": "sha256:b732a1e2a0d9be911aae26f4451c16e96862137a210b287e1fe91343f5460da4",
+      "state": "uploaded"
+    },
+    "php-5.3-arm64.tar.zst": {
+      "id": 579112481,
+      "size": 45012564,
+      "digest": "sha256:fbc20a4cb3cb7db973704fc56039de60434f78e1c9b77cedfdb7b2e4bdeb1f56",
+      "state": "uploaded"
+    },
+    "php-5.3-build-arm64.tar.zst": {
+      "id": 481542127,
+      "size": 8833454,
+      "digest": "sha256:5aab39b527967d33db661e6cca00293d77d86cb3abaed58ad137c1d7c2fc716c",
+      "state": "uploaded"
+    },
+    "php-5.3-build.tar.zst": {
+      "id": 481543844,
+      "size": 9166722,
+      "digest": "sha256:8cd6d0e73282584c5f8bd8e3c1febcf7c5269dcd918fc37fb014db459e7ba175",
+      "state": "uploaded"
+    },
+    "php-5.3.tar.xz": {
+      "id": 579112482,
+      "size": 45429708,
+      "digest": "sha256:d5a183d724b514da0c37e27591b3bf6d791b05aa7e1b548568f9df5205ec96c7",
+      "state": "uploaded"
+    },
+    "php-5.3.tar.zst": {
+      "id": 579112486,
+      "size": 45340391,
+      "digest": "sha256:f202fcdfb0b37bb7f18b778d7a5ebee88ae5238e36ba466a91cfbd48646eda4d",
+      "state": "uploaded"
+    },
+    "php-5.4-arm64.tar.xz": {
+      "id": 579112483,
+      "size": 45696588,
+      "digest": "sha256:7404767272c2960afee952c32e15cd2771b0d03ab25a12bacaa67becaac3fe59",
+      "state": "uploaded"
+    },
+    "php-5.4-arm64.tar.zst": {
+      "id": 579112546,
+      "size": 45603081,
+      "digest": "sha256:4b357e11acfe4ee5c678d5b113c622b264783f280606edda2eaf57c7b9affc8e",
+      "state": "uploaded"
+    },
+    "php-5.4-build-arm64.tar.zst": {
+      "id": 481542839,
+      "size": 9426223,
+      "digest": "sha256:92a9f10fcd11069ea81780cc180841f6b986097c60abd2fbb2a8cc04d406177b",
+      "state": "uploaded"
+    },
+    "php-5.4-build.tar.zst": {
+      "id": 481544640,
+      "size": 9801694,
+      "digest": "sha256:343c6233f3ad2a2d6aad7c117fadd93e7629e7a6da5cc4a8423ebe5b3bb26bd3",
+      "state": "uploaded"
+    },
+    "php-5.4.tar.xz": {
+      "id": 579112553,
+      "size": 46062396,
+      "digest": "sha256:5ce7f92414efef10f41b7f34e509767c193cdc53cb93d8b3e8e45996640f6171",
+      "state": "uploaded"
+    },
+    "php-5.4.tar.zst": {
+      "id": 579112560,
+      "size": 45975457,
+      "digest": "sha256:8d2447c2a30eacad6f1adfede2c966b13f57960ea60d95add7e401b0766c328a",
+      "state": "uploaded"
+    },
+    "php-5.5-arm64.tar.xz": {
+      "id": 579112559,
+      "size": 45707496,
+      "digest": "sha256:7a28ab003f3eb81e4c9d4761481b75ff7f5306e9fa991914d54038b84f605a85",
+      "state": "uploaded"
+    },
+    "php-5.5-arm64.tar.zst": {
+      "id": 579112568,
+      "size": 45614392,
+      "digest": "sha256:cbced8546b3fdde704aaa0eae07e4eff40b417c7b07e3c864fd3efe7fcd83d3f",
+      "state": "uploaded"
+    },
+    "php-5.5-build-arm64.tar.zst": {
+      "id": 481543544,
+      "size": 9441233,
+      "digest": "sha256:17e08c4b6f74564ae3daddaf1ad732e515bf44de56be3f7089b74da06c551043",
+      "state": "uploaded"
+    },
+    "php-5.5-build.tar.zst": {
+      "id": 481544178,
+      "size": 9866472,
+      "digest": "sha256:a4cc4dd712bf2731f4019197794e4e844fd4207b62d73f9eb0040e164ec920ec",
+      "state": "uploaded"
+    },
+    "php-5.5.tar.xz": {
+      "id": 579112610,
+      "size": 46123988,
+      "digest": "sha256:ab78c09f3692fabe955285e93b8fcbd98792732e4e3f7a725a76966c5d157030",
+      "state": "uploaded"
+    },
+    "php-5.5.tar.zst": {
+      "id": 579112622,
+      "size": 46037359,
+      "digest": "sha256:34eb80df9a8887f1f4543ae2d11307a3ceebdb8445db9f9c92cfa9b62b53220e",
+      "state": "uploaded"
+    },
+    "release.log": {
+      "id": 579112629,
+      "size": 15695,
+      "digest": "sha256:0ea72c99562da913ccae86779e7745997f67c16df6f4b5bf5be91c89239f0fdf",
+      "state": "uploaded"
+    }
+  },
+  "campaign_files": [
+    "php-5.3-build.tar.zst",
+    "php-5.3.tar.xz",
+    "php-5.3.tar.zst",
+    "php-5.3-build-arm64.tar.zst",
+    "php-5.3-arm64.tar.xz",
+    "php-5.3-arm64.tar.zst",
+    "php-5.4-build.tar.zst",
+    "php-5.4.tar.xz",
+    "php-5.4.tar.zst",
+    "php-5.4-build-arm64.tar.zst",
+    "php-5.4-arm64.tar.xz",
+    "php-5.4-arm64.tar.zst",
+    "php-5.5-build.tar.zst",
+    "php-5.5.tar.xz",
+    "php-5.5.tar.zst",
+    "php-5.5-build-arm64.tar.zst",
+    "php-5.5-arm64.tar.xz",
+    "php-5.5-arm64.tar.zst",
+    "install.sh",
+    "release.log"
+  ],
+  "transport": "individual",
+  "backup_replacements": true,
+  "no_rebuild": true,
+  "authorization": "Publish existing approved PHP 5.3\u20135.5 binaries to GitHub Releases; then test with setup-php."
+}
