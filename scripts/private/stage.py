@@ -106,6 +106,15 @@ def plan():
               'source_manifest_key':key, 'dependencies':PROJECT['dependencies'], 'builds':builds, 'tests':tests,
               'installer':fingerprint(ROOT/'scripts/install.sh'), 'public_publication':False}
     record['extension_inputs'] = extension_inputs(manifest['extension_inputs'])
+    reuse=os.environ.get('PRIVATE_REUSE_BUILD_ID','')
+    if reuse:
+        require(re.fullmatch(r'[1-9][0-9]*-[1-9][0-9]*',reuse), 'Invalid reuse identity')
+        original=store.get_json(prefix(project,reuse)+'/plan.json')
+        require(original['id']==reuse and 'reused_build' not in original, 'Invalid original build identity')
+        for field in ('project','repository','minor','source','dependencies','builds','extension_inputs','installer','ref'):
+            require(original[field]==record[field], 'Reused build input mismatch: '+field)
+        for item in original['builds']:package_result(original,prefix(project,reuse),item['id'])
+        record['reused_build']={'id':reuse,'revision':original['revision'],'plan_sha256':digest(original)}
     store.put_json(base + '/plan.json',record)
     with open(os.environ['GITHUB_OUTPUT'],'a') as f:
         f.write('builds=' + json.dumps({'include':builds}) + '\n')
@@ -156,6 +165,13 @@ def diagnostics(store, base, label, directory):
 def build():
     plan, base = load(); store=Store()
     item = next(i for i in plan['builds'] if i['id'] == os.environ['PRIVATE_JOB_ID'])
+    if plan.get('reused_build'):
+        original,oldbase=original_build(plan)
+        oldresult=package_result(original,oldbase,item['id'])
+        for f in oldresult['files']:
+            store.get(f['key'],workdir()/f['name'],{k:f[k] for k in ('sha256','bytes')})
+        store.put_json(base+'/results/build-'+item['id']+'.json',{'schema':1,'id':item['id'],'plan_sha256':digest(plan),'status':'success','files':oldresult['files'],'reused_from':plan['reused_build']})
+        return
     task=workdir()/'build'; task.mkdir(); output=task/'packages'; output.mkdir(); reports=task/'reports';reports.mkdir()
     source = task/plan['source']['name']; store.get(plan['source']['key'],source,{k:plan['source'][k] for k in ('sha256','bytes')})
     source_check(source,plan['source'])
@@ -187,12 +203,27 @@ def build():
         diagnostics(store,base,'build-'+item['id'],reports)
 
 
+def original_build(plan):
+    reuse=plan['reused_build'];oldbase=prefix(plan['project'],reuse['id'])
+    original=Store().get_json(oldbase+'/plan.json')
+    require(original['id']==reuse['id'] and digest(original)==reuse['plan_sha256'] and original['revision']==reuse['revision'], 'Original build provenance mismatch')
+    require('reused_build' not in original, 'Reuse chains are not supported')
+    for field in ('project','repository','minor','source','dependencies','builds','extension_inputs','installer','ref'):
+        require(original[field]==plan[field], 'Original build inputs changed')
+    return original,oldbase
+
+
 def package_result(plan, base, arch):
     result=Store().get_json(base+'/results/build-'+arch+'.json')
     require(result['id'] == arch and result['plan_sha256'] == digest(plan) and result['status'] == 'success', 'Invalid package result')
     require(sorted(f['name'] for f in result['files']) == sorted(names(plan,arch)), 'Incomplete package inventory')
+    filebase=base
+    if plan.get('reused_build'):
+        original,filebase=original_build(plan)
+        expected=package_result(original,filebase,arch)
+        require(result.get('reused_from')==plan['reused_build'] and result['files']==expected['files'], 'Reused package result mismatch')
     for f in result['files']:
-        require(f['key'] == base+'/packages/'+arch+'/'+f['name'] and re.fullmatch('[a-f0-9]{64}',f['sha256']) and 0 < f['bytes'] < 2*1024**3,'Invalid package descriptor')
+        require(f['key'] == filebase+'/packages/'+arch+'/'+f['name'] and re.fullmatch('[a-f0-9]{64}',f['sha256']) and 0 < f['bytes'] < 2*1024**3,'Invalid package descriptor')
     return result
 
 

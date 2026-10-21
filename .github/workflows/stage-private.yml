@@ -10,6 +10,11 @@ on:
         required: true
         type: choice
         options: ['5.3', '5.4', '5.5']
+      reuse-build-id:
+        description: Optional original run-attempt with successful binaries and identical source inputs
+        required: false
+        type: string
+        default: ''
 permissions:
   contents: read
 concurrency:
@@ -19,6 +24,7 @@ env:
   PRIVATE_PROJECT: php5-ubuntu
   PRIVATE_BUILD_ID: ${{ github.run_id }}-${{ github.run_attempt }}
   PHP_VERSION: ${{ inputs.php-version }}
+  PRIVATE_REUSE_BUILD_ID: ${{ inputs.reuse-build-id }}
   PRIVATE_SOURCE_MANIFEST_KEY: ${{ secrets.PRIVATE_SOURCE_MANIFEST_KEY }}
   PRIVATE_R2_ENDPOINT: ${{ secrets.PRIVATE_R2_ENDPOINT }}
   PRIVATE_R2_ACCESS_KEY_ID: ${{ secrets.PRIVATE_R2_ACCESS_KEY_ID }}

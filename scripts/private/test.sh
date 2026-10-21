@@ -7,11 +7,12 @@ here=$(cd "$(dirname "$0")" && pwd)
 command -v zstd >/dev/null || sudo apt-get install -y zstd
 suffix='';[[ "$EXPECTED_ARCHITECTURE" = arm64 ]] && suffix=-arm64
 cd "$PRIVATE_TASK_DIR"
-tar -I zstd -xf "$PACKAGE_DIR/php-$PHP_VERSION$suffix.tar.zst"
+[[ ! -e "/tmp/php-$PHP_VERSION" ]]
+tar -I zstd -xf "$PACKAGE_DIR/php-$PHP_VERSION$suffix.tar.zst" -C /tmp
 mkdir "$PRIVATE_TASK_DIR/raw"
 tar -I zstd -xf "$PACKAGE_DIR/php-$PHP_VERSION-build$suffix.tar.zst" -C "$PRIVATE_TASK_DIR/raw"
 python3 "$here/check-runtime.py" "$PRIVATE_TASK_DIR/raw/$PHP_VERSION" "$EXPECTED_ARCHITECTURE" > "$REPORT_DIR/runtime-inspection.json"
-cd "php-$PHP_VERSION"
+cd "/tmp/php-$PHP_VERSION"
 chmod a+x ./*.sh
 ./install-php.sh
 ./post-install.sh
