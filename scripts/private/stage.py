@@ -74,6 +74,18 @@ def names(plan, arch):
     return [f'php-{minor}-build{suffix}.tar.zst', f'php-{minor}{suffix}.tar.xz', f'php-{minor}{suffix}.tar.zst']
 
 
+def extension_inputs(files):
+    script = (ROOT / 'scripts/build-extensions.sh').read_text()
+    versions = dict(re.findall(r"^([A-Z_]+)_VERSION='([^']+)'", script, re.M))
+    packages = re.findall(r'https://pecl.php.net/get/([a-z_]+)-"\$([A-Z_]+)_VERSION".tgz', script)
+    expected = {name + '-' + versions[var] + '.tgz' for name, var in packages}
+    require(len(files) == len(expected) == 15 and {f['name'] for f in files} == expected, 'Extension input inventory mismatch')
+    for f in files:
+        require(re.fullmatch('[a-f0-9]{64}', f['sha256']) and 0 < f['bytes'] < 32 * 1024**2, 'Invalid extension input')
+        require(f['key'] == f"uploads/sha256/{f['sha256']}/{f['name']}", 'Extension input key mismatch')
+    return files
+
+
 def plan():
     project, base = context()
     minor = os.environ['PHP_VERSION']
@@ -93,6 +105,7 @@ def plan():
               'revision':os.environ['GITHUB_SHA'], 'ref':os.environ['GITHUB_REF'], 'minor':minor, 'source':source,
               'source_manifest_key':key, 'dependencies':PROJECT['dependencies'], 'builds':builds, 'tests':tests,
               'installer':fingerprint(ROOT/'scripts/install.sh'), 'public_publication':False}
+    record['extension_inputs'] = extension_inputs(manifest['extension_inputs'])
     store.put_json(base + '/plan.json',record)
     with open(os.environ['GITHUB_OUTPUT'],'a') as f:
         f.write('builds=' + json.dumps({'include':builds}) + '\n')
@@ -106,6 +119,7 @@ def load():
             plan['revision'] == os.environ['GITHUB_SHA'] and plan['ref'] == os.environ['GITHUB_REF'], 'Plan identity mismatch')
     require(plan['builds'] == matrices(project)[0] and plan['tests'] == matrices(project)[1] and
             plan['dependencies'] == PROJECT['dependencies'] and plan['source']['version'] == VERSIONS[plan['minor']], 'Plan drift')
+    extension_inputs(plan['extension_inputs'])
     return plan, base
 
 
@@ -148,11 +162,16 @@ def build():
     guard=plan['source']['mitigation_patch']
     require(re.fullmatch('[a-f0-9]{64}',guard['sha256']) and guard['key']==f"uploads/patches/{guard['sha256']}.patch", 'Invalid mitigation proof')
     mitigation=task/'mitigation.patch'; store.get(guard['key'],mitigation,{k:guard[k] for k in ('sha256','bytes')})
+    extensions=task/'extension-inputs';extensions.mkdir()
+    for f in extension_inputs(plan['extension_inputs']):
+        file=extensions/f['name'];store.get(f['key'],file,{k:f[k] for k in ('sha256','bytes')})
+        with tarfile.open(file,'r:gz') as archive:
+            require(all((m.isfile() or m.isdir()) and not m.name.startswith('/') and '..' not in PurePosixPath(m.name).parts for m in archive), 'Unsafe extension archive')
     repo=checkout(task/'repository')
     env={**clean_env(), 'PHP_VERSION':plan['minor'], 'PHP_FULL_VERSION':plan['source']['version'],
          'SOURCE_ARCHIVE':str(source), 'SOURCE_SHA256':plan['source']['sha256'], 'SOURCE_ROOT':plan['source']['root'], 'MITIGATION_PATCH':str(mitigation), 'EXPECTED_ARCHITECTURE':item['arch'],
          'OUTPUT_DIR':str(output), 'REPORT_DIR':str(reports), 'BUILD_REPOSITORY':str(repo),
-         'PRIVATE_TASK_DIR':str(task), 'DEPENDENCY_CONFIG':str(ROOT/'scripts/private/project.json')}
+         'PHP_EXTENSION_SOURCE_DIR':str(extensions), 'PRIVATE_TASK_DIR':str(task), 'DEPENDENCY_CONFIG':str(ROOT/'scripts/private/project.json')}
     if 'macports_package' in item:env['MACPORTS_PACKAGE']=item['macports_package']
     try:
         shell(['bash',str(ROOT/'scripts/private/build.sh')],env)

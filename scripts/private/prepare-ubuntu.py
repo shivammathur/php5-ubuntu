@@ -51,3 +51,19 @@ marker='  tar -xzf /tmp/bison.tar.gz -C /tmp'
 assert text.count(marker)==1
 text=text.replace(marker, '  echo "de2d15dfdcfc24405464cb95acc9d5ef31fb2e5be4aca6a530ec59bb57c30e5d  /tmp/bison.tar.gz" | sha256sum -c -\n'+marker)
 p.write_text(text)
+
+# Use the coordinator's hash-verified inputs. Legacy container TLS/PECL responses
+# must never be mistaken for source tarballs, and versions remain unchanged.
+extensions=Path(os.environ['PHP_EXTENSION_SOURCE_DIR'])
+p=r/'scripts/build-extensions.sh';text=p.read_text()
+versions=dict(re.findall(r"^([A-Z_]+)_VERSION='([^']+)'",text,re.M))
+pattern=r'  curl -o /tmp/([a-z_]+).tgz -sL https://pecl.php.net/get/([a-z_]+)-"\$([A-Z_]+)_VERSION".tgz'
+def local_extension(match):
+    target,package,var=match.groups();name=package+'-'+versions[var]+'.tgz'
+    assert (extensions/name).is_file(), 'Missing verified extension input: '+name
+    return '  cp /private-extensions/'+name+' /tmp/'+target+'.tgz'
+text,count=re.subn(pattern,local_extension,text);assert count==15
+p.write_text(text);shutil.copytree(extensions,source/'extensions')
+p=r/'Dockerfile';text=p.read_text();marker='FROM php-build AS build-extensions-prepare'
+assert text.count(marker)==1
+p.write_text(text.replace(marker,marker+'\nCOPY private-input/extensions/ /private-extensions/'))
