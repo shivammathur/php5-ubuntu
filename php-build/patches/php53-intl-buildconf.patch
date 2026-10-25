@@ -1,0 +1,10 @@
+--- a/acinclude.m4
++++ b/acinclude.m4
+@@ -762,6 +762,7 @@
+   if test -z "$php_cxx_done"; then
+     AC_PROG_CXX
+     AC_PROG_CXXCPP
++    PHP_ADD_LIBRARY(stdc++)
+     php_cxx_done=yes
+   fi
+ ])

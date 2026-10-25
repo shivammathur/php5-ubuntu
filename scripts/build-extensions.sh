@@ -50,94 +50,94 @@ add_libmemcached() {
 
 add_amqp() {
   add_librabbitmq
-  curl -o /tmp/amqp.tgz -sL https://pecl.php.net/get/amqp-"$AMQP_VERSION".tgz
+  cp /backport-extensions/amqp-1.9.3.tgz /tmp/amqp.tgz
   tar -xzf /tmp/amqp.tgz -C /tmp
   build_extension amqp /tmp/amqp-"$AMQP_VERSION" extension 20 --with-amqp=shared --with-librabbitmq-dir="$install_dir"/lib/librabbitmq
 }
 
 add_apcu() {
-  curl -o /tmp/apcu.tgz -sL https://pecl.php.net/get/apcu-"$APCU_VERSION".tgz
+  cp /backport-extensions/apcu-4.0.11.tgz /tmp/apcu.tgz
   tar -xzf /tmp/apcu.tgz -C /tmp
   build_extension apcu /tmp/apcu-"$APCU_VERSION" extension 20 --enable-apcu
 }
 
 add_gearman() {
-  curl -o /tmp/gearman.tgz -sL https://pecl.php.net/get/gearman-"$GEARMAN_VERSION".tgz
+  cp /backport-extensions/gearman-1.1.0.tgz /tmp/gearman.tgz
   tar -xzf /tmp/gearman.tgz -C /tmp
   build_extension gearman /tmp/gearman-"$GEARMAN_VERSION" extension 20 --with-gearman=/usr
 }
 
 add_igbinary() {
-  curl -o /tmp/igbinary.tgz -sL https://pecl.php.net/get/igbinary-"$IGBINARY_VERSION".tgz
+  cp /backport-extensions/igbinary-2.0.8.tgz /tmp/igbinary.tgz
   tar -xzf /tmp/igbinary.tgz -C /tmp
   build_extension igbinary /tmp/igbinary-"$IGBINARY_VERSION" extension 20
 }
 
 add_imagick() {
-  curl -o /tmp/imagick.tgz -sL https://pecl.php.net/get/imagick-"$IMAGICK_VERSION".tgz
+  cp /backport-extensions/imagick-3.4.4.tgz /tmp/imagick.tgz
   tar -xzf /tmp/imagick.tgz -C /tmp
   build_extension imagick /tmp/imagick-"$IMAGICK_VERSION" extension 20
 }
 
 add_memcached() {
   add_libmemcached
-  curl -o /tmp/memcached.tgz -sL https://pecl.php.net/get/memcached-"$MEMCACHED_VERSION".tgz
+  cp /backport-extensions/memcached-2.2.0.tgz /tmp/memcached.tgz
   tar -xzf /tmp/memcached.tgz -C /tmp
   build_extension memcached /tmp/memcached-"$MEMCACHED_VERSION" extension 25 --enable-memcached --with-libmemcached-dir="$install_dir"/lib/libmemcached
 }
 
 add_memcache() {
-  curl -o /tmp/memcache.tgz -sL https://pecl.php.net/get/memcache-"$MEMCACHE_VERSION".tgz
+  cp /backport-extensions/memcache-3.0.8.tgz /tmp/memcache.tgz
   tar -xzf /tmp/memcache.tgz -C /tmp
   build_extension memcache /tmp/memcache-"$MEMCACHE_VERSION" extension 20 --enable-memcache
 }
 
 add_mongo() {
-  curl -o /tmp/mongo.tgz -sL https://pecl.php.net/get/mongo-"$MONGO_VERSION".tgz
+  cp /backport-extensions/mongo-1.6.16.tgz /tmp/mongo.tgz
   tar -xzf /tmp/mongo.tgz -C /tmp
   build_extension mongo /tmp/mongo-"$MONGO_VERSION" extension 20 --enable-mongo
 }
 
 add_mongodb() {
-  curl -o /tmp/mongodb.tgz -sL https://pecl.php.net/get/mongodb-"$MONGODB_VERSION".tgz
+  cp /backport-extensions/mongodb-1.1.0.tgz /tmp/mongodb.tgz
   tar -xzf /tmp/mongodb.tgz -C /tmp
   build_extension mongodb /tmp/mongodb-"$MONGODB_VERSION" extension 20 --enable-mongodb
 }
 
 add_msgpack() {
-  curl -o /tmp/msgpack.tgz -sL https://pecl.php.net/get/msgpack-"$MSGPACK_VERSION".tgz
+  cp /backport-extensions/msgpack-0.5.7.tgz /tmp/msgpack.tgz
   tar -xzf /tmp/msgpack.tgz -C /tmp
   build_extension msgpack /tmp/msgpack-"$MSGPACK_VERSION" extension 20 --with-msgpack
 }
 
 add_opcache() {
   if [ "$PHP_VERSION" != "5.5" ]; then
-    curl -o /tmp/opcache.tgz -sL https://pecl.php.net/get/zendopcache-"$OPCACHE_VERSION".tgz
+    cp /backport-extensions/zendopcache-7.0.5.tgz /tmp/opcache.tgz
     tar -xzf /tmp/opcache.tgz -C /tmp
     build_extension opcache /tmp/zendopcache-"$OPCACHE_VERSION" zend_extension 10 --enable-opcache
   fi
 }
 
 add_pecl_http() {
-  curl -o /tmp/pecl_http.tgz -sL https://pecl.php.net/get/pecl_http-"$PECL_HTTP_VERSION".tgz
+  cp /backport-extensions/pecl_http-2.6.0.tgz /tmp/pecl_http.tgz
   tar -xzf /tmp/pecl_http.tgz -C /tmp
   build_extension pecl_http /tmp/pecl_http-"$PECL_HTTP_VERSION" extension 25 --with-http --with-http-zlib-dir=/usr --with-http-libcurl-dir=/usr --with-http-libevent-dir=/usr --with-http-libidn-dir=/usr
 }
 
 add_propro() {
-  curl -o /tmp/propro.tgz -sL https://pecl.php.net/get/propro-"$PROPRO_VERSION".tgz
+  cp /backport-extensions/propro-1.0.2.tgz /tmp/propro.tgz
   tar -xzf /tmp/propro.tgz -C /tmp
   build_extension propro /tmp/propro-"$PROPRO_VERSION" extension 20 --enable-propro
 }
 
 add_raphf() {
-  curl -o /tmp/raphf.tgz -sL https://pecl.php.net/get/raphf-"$RAPHF_VERSION".tgz
+  cp /backport-extensions/raphf-1.1.2.tgz /tmp/raphf.tgz
   tar -xzf /tmp/raphf.tgz -C /tmp
   build_extension raphf /tmp/raphf-"$RAPHF_VERSION" extension 20 --enable-raphf
 }
 
 add_redis() {
-  curl -o /tmp/redis.tgz -sL https://pecl.php.net/get/redis-"$REDIS_VERSION".tgz
+  cp /backport-extensions/redis-2.2.8.tgz /tmp/redis.tgz
   tar -xzf /tmp/redis.tgz -C /tmp
   build_extension redis /tmp/redis-"$REDIS_VERSION" extension 20 --enable-redis --enable-redis-igbinary
 }

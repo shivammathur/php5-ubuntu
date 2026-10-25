@@ -172,9 +172,7 @@ build_and_ship_package() {
     cd "$install_dir"/.. || exit
     sudo tar cf - "$PHP_VERSION" | zstd -22 -T0 --ultra > "$GITHUB_WORKSPACE"/php-"$PHP_VERSION"-build"$arch_suffix".tar.zst
   )
-  gh release download -p "release.log" || true
-  echo "$(date "+%Y-%m-%d %H:%M:%S") Update php-$PHP_VERSION-build$arch_suffix.tar.zst" | sudo tee -a release.log >/dev/null 2>&1
-  gh release upload "builds" release.log "php-$PHP_VERSION-build$arch_suffix.tar.zst" --clobber
+
 }
 
 mode="${1:-all}"

@@ -48,25 +48,17 @@ COPY --from=build-bison /build /
 COPY --from=build-icu /build /
 COPY --from=build-openssl /build /
 
-# Fetch php source
-FROM fetch AS fetch-php-5.3
-WORKDIR /tmp/php-build/packages
-RUN wget https://secure.php.net/distributions/php-5.3.29.tar.bz2
-
-FROM fetch AS fetch-php-5.4
-WORKDIR /tmp/php-build/packages
-RUN wget https://secure.php.net/distributions/php-5.4.45.tar.bz2
-
-FROM fetch AS fetch-php-5.5
-WORKDIR /tmp/php-build/packages
-RUN wget https://secure.php.net/distributions/php-5.5.38.tar.bz2
-
-FROM fetch-php-$PHP_VERSION AS fetch-php
+# The workflow resolves backport branches once for both architectures.
+FROM base AS fetch-php
+COPY backport-input/source.tar.gz /tmp/php-build/packages/backport-source.tar.gz
 
 FROM build-deps AS build-prepare
 ARG PHP_VERSION
 ENV PHP_VERSION $PHP_VERSION
-COPY --from=fetch-php /tmp/php-build/packages/php-*.tar.bz2 /tmp/php-build/packages/
+COPY --from=fetch-php /tmp/php-build/packages/backport-source.tar.gz /tmp/php-build/packages/backport-source.tar.gz
+ENV PHP_BACKPORT_SOURCE_ARCHIVE=/tmp/php-build/packages/backport-source.tar.gz
+ARG PHP_BACKPORT_SOURCE_SHA256
+ENV PHP_BACKPORT_SOURCE_SHA256=$PHP_BACKPORT_SOURCE_SHA256
 
 COPY scripts/ /scripts/
 COPY conf/ /conf/
@@ -88,6 +80,7 @@ COPY --from=build-fpm /usr/local/php/${PHP_VERSION}-fpm /usr/local/php/${PHP_VER
 RUN bash -xeu /scripts/build.sh merge-sapi
 
 FROM php-build AS build-extensions-prepare
+COPY backport-input/extensions/ /backport-extensions/
 FROM build-extensions-prepare AS ext-apcu
 RUN bash -xeu /scripts/build-extensions.sh apcu /build
 FROM build-extensions-prepare AS ext-amqp

@@ -1,11 +1,12 @@
 configure_option "--with-sqlite=shared,/usr"
 
-patch_file "php-5.3.29-64bit-intl.patch"
+patch_file "php53-intl-buildconf.patch"
 patch_file "php-5.3.29-autoconf.patch"
 patch_file "php-5.3.29-extension_api.patch"
 patch_file "php-5.3.29-multi-sapi.patch"
 patch_file "php-5.3.29-sqlite.patch"
 patch_file "php-5.4.12-support-c++11.patch"
 
-install_package "https://secure.php.net/distributions/php-5.3.29.tar.bz2"
+. /scripts/backports/source.sh
+install_package_from_backports
 install_xdebug "2.2.7"

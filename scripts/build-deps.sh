@@ -16,9 +16,10 @@ add_icu() {
 }
 
 add_bison() {
-  curl -o /tmp/bison.tar.gz -sL https://ftp.gnu.org/gnu/bison/bison-1.75.tar.gz
+  curl -o /tmp/bison.tar.gz -sL https://ftp.gnu.org/gnu/bison/bison-2.6.4.tar.gz
+  echo "de2d15dfdcfc24405464cb95acc9d5ef31fb2e5be4aca6a530ec59bb57c30e5d  /tmp/bison.tar.gz" | sha256sum -c -
   tar -xzf /tmp/bison.tar.gz -C /tmp
-  install_pkg /tmp/bison-1.75
+  install_pkg /tmp/bison-2.6.4
 }
 
 add_openssl() {

@@ -1,0 +1,94 @@
+{
+  "repository": "shivammathur/php-src-backports",
+  "versions": {
+    "5.3": {
+      "version": "5.3.29",
+      "branch": "PHP-5.3-security-backports"
+    },
+    "5.4": {
+      "version": "5.4.45",
+      "branch": "PHP-5.4-security-backports"
+    },
+    "5.5": {
+      "version": "5.5.38",
+      "branch": "PHP-5.5-security-backports"
+    }
+  },
+  "extensions": [
+    {
+      "name": "amqp-1.9.3.tgz",
+      "origin": "https://pecl.php.net/get/amqp-1.9.3.tgz",
+      "sha256": "c79e52db33bf907dad7da8f350dbdf2937b0679a3dc44fb2a941efb6d4808da9"
+    },
+    {
+      "name": "apcu-4.0.11.tgz",
+      "origin": "https://pecl.php.net/get/apcu-4.0.11.tgz",
+      "sha256": "454f302ec13a6047ca4c39e081217ce5a61bbea815aec9c1091fb849e70b4d00"
+    },
+    {
+      "name": "gearman-1.1.0.tgz",
+      "origin": "https://pecl.php.net/get/gearman-1.1.0.tgz",
+      "sha256": "a3e98a06e1cf2884ac9f3085f77b194dad9e6f85a8c70e197765a4f13d94c604"
+    },
+    {
+      "name": "igbinary-2.0.8.tgz",
+      "origin": "https://pecl.php.net/get/igbinary-2.0.8.tgz",
+      "sha256": "bacbab1172e073b1857dc07a486bfdaca6d60fbed678ce0f4b37cd018ef5b680"
+    },
+    {
+      "name": "imagick-3.4.4.tgz",
+      "origin": "https://pecl.php.net/get/imagick-3.4.4.tgz",
+      "sha256": "8dd5aa16465c218651fc8993e1faecd982e6a597870fd4b937e9ece02d567077"
+    },
+    {
+      "name": "memcached-2.2.0.tgz",
+      "origin": "https://pecl.php.net/get/memcached-2.2.0.tgz",
+      "sha256": "17b9600f6d4c807f23a3f5c45fcd8775ca2e61d6eda70370af2bef4c6e159f58"
+    },
+    {
+      "name": "memcache-3.0.8.tgz",
+      "origin": "https://pecl.php.net/get/memcache-3.0.8.tgz",
+      "sha256": "2cae5b423ffbfd33a259829849f6000d4db018debe3e29ecf3056f06642e8311"
+    },
+    {
+      "name": "mongo-1.6.16.tgz",
+      "origin": "https://pecl.php.net/get/mongo-1.6.16.tgz",
+      "sha256": "c061ebbeb6618568a71d7a6a9d7a31a34fe107f09c8c01a43c934fbed0665457"
+    },
+    {
+      "name": "mongodb-1.1.0.tgz",
+      "origin": "https://pecl.php.net/get/mongodb-1.1.0.tgz",
+      "sha256": "33b92909c2f9584d8c6cfd0bd0438092f0d09a019241ef100813203620612b71"
+    },
+    {
+      "name": "msgpack-0.5.7.tgz",
+      "origin": "https://pecl.php.net/get/msgpack-0.5.7.tgz",
+      "sha256": "b8ee20cd0a79426c1abd55d5bbae85e5dcfbe0238abf9ce300685fbe76d94cdf"
+    },
+    {
+      "name": "zendopcache-7.0.5.tgz",
+      "origin": "https://pecl.php.net/get/zendopcache-7.0.5.tgz",
+      "sha256": "c8e4a23bcc78e6280f41b5020eac4825a810d77684d0ce10608bfa5bece9e9c0"
+    },
+    {
+      "name": "pecl_http-2.6.0.tgz",
+      "origin": "https://pecl.php.net/get/pecl_http-2.6.0.tgz",
+      "sha256": "ddbf3eea3d1c7004a7dd83b5864aee5f87b1b6032bc281c08ccc62f83b9931ed"
+    },
+    {
+      "name": "propro-1.0.2.tgz",
+      "origin": "https://pecl.php.net/get/propro-1.0.2.tgz",
+      "sha256": "6b4e785adcc8378148c7ad06aa82e71e1d45c7ea5dbebea9ea9a38fee14e62e7"
+    },
+    {
+      "name": "raphf-1.1.2.tgz",
+      "origin": "https://pecl.php.net/get/raphf-1.1.2.tgz",
+      "sha256": "d35a49672e72d0e03751385e0b8fed02aededcacc5e3ec27c98a5849720483a7"
+    },
+    {
+      "name": "redis-2.2.8.tgz",
+      "origin": "https://pecl.php.net/get/redis-2.2.8.tgz",
+      "sha256": "fc533752de62848f645707b65cba9d015ab4ed9c7a978c7bd710a5934d97b1b5"
+    }
+  ]
+}

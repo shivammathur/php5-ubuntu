@@ -1,223 +1,199 @@
-name: Test
+name: Build PHP 5 backports
+run-name: Build PHP 5.3–5.5 backports (${{ inputs.ticket || github.sha }})
 on:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish all packages after native validation
+        type: boolean
+        default: true
+      ticket:
+        description: Unique dispatch tracking ticket
+        type: string
+        default: ''
   push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: build-php5
+  cancel-in-progress: false
+defaults:
+  run:
+    shell: bash
 jobs:
-  build-php:
-    if: "!contains(github.event.head_commit.message, 'skip-build-php')"
-    name: Build PHP ${{ matrix.php-versions }} on ${{ matrix.containers }}
-    runs-on: ${{ matrix.os }}
+  source:
+    name: Resolve backport branches
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Resolve and verify source inputs
+        run: bash scripts/backports/source-inputs.sh resolve "$RUNNER_TEMP/source-inputs"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: backport-source-inputs
+          path: ${{ runner.temp }}/source-inputs
+          if-no-files-found: error
+          retention-days: 14
+
+  build:
+    needs: source
+    name: Build PHP ${{ matrix.php }} ${{ matrix.target.arch }}
+    runs-on: ${{ matrix.target.runner }}
+    timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - php-versions: 5.3
-            containers: ubuntu:trusty
-            arch-suffix: ''
-            os: ubuntu-24.04
-          - php-versions: 5.4
-            containers: ubuntu:trusty
-            arch-suffix: ''
-            os: ubuntu-24.04
-          - php-versions: 5.5
-            containers: ubuntu:trusty
-            arch-suffix: ''
-            os: ubuntu-24.04
-          - php-versions: 5.3
-            containers: arm64v8/ubuntu:trusty
-            arch-suffix: '-arm64'
-            os: ubuntu-24.04-arm
-          - php-versions: 5.4
-            containers: arm64v8/ubuntu:trusty
-            arch-suffix: '-arm64'
-            os: ubuntu-24.04-arm
-          - php-versions: 5.5
-            containers: arm64v8/ubuntu:trusty
-            arch-suffix: '-arm64'
-            os: ubuntu-24.04-arm
+        php: ['5.3', '5.4', '5.5']
+        target:
+          - {arch: x86_64, runner: ubuntu-24.04, suffix: ''}
+          - {arch: arm64, runner: ubuntu-24.04-arm, suffix: '-arm64'}
+    env:
+      EXPECTED_ARCHITECTURE: ${{ matrix.target.arch }}
+      BUILD_REPOSITORY: ${{ github.workspace }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
-      - name: Cache Docker layers
-        uses: actions/cache@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-docker-php-${{ matrix.php-versions }}${{ matrix.arch-suffix }}-${{ matrix.os }}-${{ github.run_id }}-${{ github.run_number }}
-          restore-keys: ${{ runner.os }}-docker-php-${{ matrix.php-versions }}${{ matrix.arch-suffix }}-${{ matrix.os }}
-
-      - name: Build
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          tags: php-${{ matrix.php-versions }}${{ matrix.arch-suffix }}
-          build-args: |
-            PHP_VERSION=${{ matrix.php-versions }}
-            UBUNTU_VERSION=${{ matrix.containers }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new
-          outputs: type=docker,dest=/tmp/php-${{ matrix.php-versions }}${{ matrix.arch-suffix }}.tar
-
-      # https://github.com/docker/build-push-action/issues/252
-      - name: Move build cache
+          name: backport-source-inputs
+          path: ${{ runner.temp }}/source-inputs
+      - name: Select verified source
+        run: bash scripts/backports/source-inputs.sh activate "$RUNNER_TEMP/source-inputs" --minor '${{ matrix.php }}'
+      - name: Set build paths
         run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-
-      - name: Copy build
-        env:
-          PHP_VERSION: ${{ matrix.php-versions }}
+          {
+            echo "BACKPORT_TASK_DIR=$RUNNER_TEMP/backport-task"
+            echo "REPORT_DIR=$RUNNER_TEMP/report"
+            echo "OUTPUT_DIR=$RUNNER_TEMP/packages"
+          } >> "$GITHUB_ENV"
+      - name: Build and inspect native packages
         run: |
-          docker load --input /tmp/php-$PHP_VERSION${{ matrix.arch-suffix }}.tar
-          docker run --name=php-$PHP_VERSION${{ matrix.arch-suffix }} php-$PHP_VERSION${{ matrix.arch-suffix }} sh -c exit
-          sudo chmod 777 /usr/local
-          docker cp php-$PHP_VERSION${{ matrix.arch-suffix }}:/usr/local/php /usr/local/php
-
-      - name: Package and ship artifact to releases
-        run: bash scripts/build.sh ship
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_WORKSPACE: ${{ github.workspace }}
-          PHP_VERSION: ${{ matrix.php-versions }}
-          REPO: ${{ github.repository }}
-          USER: ${{ github.repository_owner }}
-
-      - name: Upload artifact to workflow
-        uses: actions/upload-artifact@v4
+          mkdir -p "$BACKPORT_TASK_DIR" "$REPORT_DIR" "$OUTPUT_DIR"
+          bash scripts/backports/build.sh
+          cp "$RUNNER_TEMP/source-inputs/manifest.json" "$REPORT_DIR/sources.json"
+          zstd -t "$OUTPUT_DIR"/*.zst
+          xz -t "$OUTPUT_DIR"/*.xz
+          (cd "$OUTPUT_DIR" && sha256sum ./*.tar.* > SHA256SUMS)
+      - name: Upload packages
+        uses: actions/upload-artifact@v7
         with:
-          name: php${{ matrix.php-versions }}${{ matrix.arch-suffix }}
-          path: ${{ github.workspace }}/php-${{ matrix.php-versions }}-build${{ matrix.arch-suffix }}.tar.zst
+          name: php-${{ matrix.php }}-${{ matrix.target.arch }}
+          path: ${{ runner.temp }}/packages
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload source and runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: evidence-${{ matrix.php }}-${{ matrix.target.arch }}
+          path: ${{ runner.temp }}/report
+          retention-days: 14
+
   test:
-    needs: build-php
-    if: ${{ always() }}
-    name: Test PHP-${{ matrix.php-versions }} on ${{ matrix.operating-system }}
-    runs-on: ${{ matrix.operating-system }}
+    needs: build
+    name: Validate PHP ${{ matrix.php }} on ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        php-versions: [5.3, 5.4, 5.5]
-        operating-system: [ubuntu-26.04, ubuntu-24.04, ubuntu-22.04, ubuntu-22.04-arm, ubuntu-24.04-arm, ubuntu-26.04-arm]
+        php: ['5.3', '5.4', '5.5']
+        runner: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04, ubuntu-22.04-arm, ubuntu-24.04-arm, ubuntu-26.04-arm]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Stage PHP
+      - uses: actions/checkout@v7
+      - name: Set test paths
         run: |
-          bash scripts/version-files.sh ${{ matrix.php-versions }}
-          bash scripts/stage.sh ${{ matrix.php-versions }}
-          arch="$(arch)"
-          [[ "$arch" = "arm64" || "$arch" = "aarch64" ]] && arch_suffix="-arm64" || arch_suffix=""
-          gh release download -p "php-${{ matrix.php-versions }}-build$arch_suffix.tar.zst" -D php-${{ matrix.php-versions }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install PHP
+          {
+            echo "BACKPORT_TASK_DIR=$RUNNER_TEMP/test-task"
+            echo "REPORT_DIR=$RUNNER_TEMP/report"
+            echo "PACKAGE_DIR=$RUNNER_TEMP/packages"
+          } >> "$GITHUB_ENV"
+      - name: Determine native architecture
+        id: arch
         run: |
-          cd php-${{ matrix.php-versions }} || exit
-          sudo chmod a+x *.sh
-          ./install-php.sh
-          ./post-install.sh
-
-      - name: Test libs
-        run: |
-          sudo apt-get check
-          test -z "$(dpkg --audit)"
-
-      - name: Test versions and extensions
-        run: |
-          php$ver -v | head -n 1
-          php-config$ver --version
-          phpize$ver -v
-          php$ver -m
-          php-cgi -v
-          php-fpm -v
-          pecl -V
-          curl -V
-          sudo service php$ver-fpm status
-          php$ver -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
-        env:
-          ver: ${{ matrix.php-versions }}
-
-      - name: Test SAPI
-        run: |
-          sudo rm -rf /var/www/html/index.html
-          echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" | sudo tee /var/www/html/index.php >/dev/null
-          for sapi in apache2handler:apache fpm:apache cgi:apache fpm:nginx; do
-            echo "::group::Test $sapi"
-            sudo switch_sapi $sapi >/dev/null
-            curl -s http://localhost
-            [ "$(curl -s http://localhost)" != "$sapi" ] && exit 1
-            echo "::endgroup::"
-          done
-  package:
-    name: Update dist
-    if: ${{ !cancelled() && (needs.build-php.result == 'success' || needs.build-php.result == 'skipped') && needs.test.result == 'success' && !contains(github.event.head_commit.message, 'skip-release') }}
-    needs: [build-php, test]
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        php-versions: ['5.3', '5.4', '5.5']
-        os: [ubuntu-24.04, ubuntu-24.04-arm]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Add ZSTD
-        env:
-          REPO: ${{ github.repository }}
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          USER: ${{ github.repository_owner }}
-        run: bash scripts/install-zstd.sh
-      - name: Package
-        run: |
-          mkdir builds
-          bash scripts/version-files.sh "$PHP_VERSION"
-          bash scripts/stage.sh "$PHP_VERSION"
-          arch="$(arch)"
-          [[ "$arch" = "arm64" || "$arch" = "aarch64" ]] && arch_suffix="-arm64" || arch_suffix=""
-          gh release download -p php-"$PHP_VERSION"-build"$arch_suffix".tar.zst -D php-"$PHP_VERSION"
-          sudo XZ_OPT=-e9 tar cfJ php-"$PHP_VERSION$arch_suffix".tar.xz php-"$PHP_VERSION"
-          sudo tar cf - php-"$PHP_VERSION" | zstd -22 -T0 --ultra > php-"$PHP_VERSION$arch_suffix".tar.zst
-          mv php-"$PHP_VERSION$arch_suffix".tar.* ./builds/
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PHP_VERSION: ${{ matrix.php-versions }}
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+          arch=$(uname -m)
+          [[ "$arch" != aarch64 ]] || arch=arm64
+          echo "value=$arch" >> "$GITHUB_OUTPUT"
+          echo "EXPECTED_ARCHITECTURE=$arch" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@v8
         with:
-          name: builds-${{ matrix.php-versions }}-${{ matrix.os }}
-          path: builds
+          name: php-${{ matrix.php }}-${{ steps.arch.outputs.value }}
+          path: ${{ runner.temp }}/packages
+      - uses: actions/download-artifact@v8
+        with:
+          name: backport-source-inputs
+          path: ${{ runner.temp }}/source-inputs
+      - name: Verify source and package bindings
+        run: |
+          bash scripts/backports/source-inputs.sh activate "$RUNNER_TEMP/source-inputs" --minor '${{ matrix.php }}'
+          (cd "$PACKAGE_DIR" && sha256sum -c SHA256SUMS)
+      - name: Install and validate candidate
+        run: |
+          mkdir -p "$BACKPORT_TASK_DIR" "$REPORT_DIR"
+          bash scripts/backports/test.sh
+      - name: Upload validation evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-${{ matrix.php }}-${{ matrix.runner }}
+          path: ${{ runner.temp }}/report
+          retention-days: 14
+
   release:
-    runs-on: ubuntu-latest
-    if: ${{ !cancelled() && needs.test.result == 'success' && needs.package.result == 'success' && !contains(github.event.head_commit.message, 'skip-release') }}
-    needs: [build-php, test, package]
+    needs: [source, build, test]
+    if: ${{ github.event_name == 'push' || inputs.publish }}
+    name: Publish validated PHP 5 packages
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
-      - run: mkdir builds
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
-          pattern: builds-*
-          path: builds
-          merge-multiple: true
-      - name: Release
+          pattern: php-5.*
+          path: ${{ runner.temp }}/candidates
+      - uses: actions/download-artifact@v8
+        with:
+          name: backport-source-inputs
+          path: ${{ runner.temp }}/source-inputs
+      - name: Verify complete candidate set
         run: |
-          set -x
-          assets=()
-          for asset in ./builds/*; do
-            assets+=("$asset")
+          mkdir -p "$RUNNER_TEMP/publish" "$RUNNER_TEMP/backup"
+          for minor in 5.3 5.4 5.5; do
+            for arch in x86_64 arm64; do
+              dir="$RUNNER_TEMP/candidates/php-$minor-$arch"
+              (cd "$dir" && sha256sum -c SHA256SUMS)
+              suffix=''; [[ "$arch" != arm64 ]] || suffix=-arm64
+              for name in "php-$minor-build$suffix.tar.zst" "php-$minor$suffix.tar.zst" "php-$minor$suffix.tar.xz"; do
+                test -f "$dir/$name"
+                cp "$dir/$name" "$RUNNER_TEMP/publish/"
+              done
+            done
           done
-          assets+=("./scripts/install.sh")
-          gh release download -p "release.log" || true
-          echo "$(date "+%Y-%m-%d %H:%M:%S") Update ${assets[@]}" | sudo tee -a release.log >/dev/null 2>&1
-          assets+=("./release.log")
-          exists=$(gh release list | grep -Po 'builds' | head -n 1)
-          if [ "x$exists" != "xbuilds" ]; then
-            gh release create "builds" "${assets[@]}" -n "builds" -t "builds"
-          else
-            gh release upload "builds" "${assets[@]}" --clobber
-          fi
+          test "$(find "$RUNNER_TEMP/publish" -name '*.tar.*' | wc -l)" -eq 18
+          zstd -t "$RUNNER_TEMP/publish"/*.zst
+          xz -t "$RUNNER_TEMP/publish"/*.xz
+          cp scripts/install.sh "$RUNNER_TEMP/publish/install.sh"
+          cp "$RUNNER_TEMP/source-inputs/manifest.json" "$RUNNER_TEMP/publish/php5-source-manifest.json"
+          (cd "$RUNNER_TEMP/publish" && sha256sum ./*.tar.* install.sh php5-source-manifest.json > php5-SHA256SUMS)
+      - name: Back up current assets
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download builds --repo "$GITHUB_REPOSITORY" --pattern 'php-5.*' --pattern install.sh --dir "$RUNNER_TEMP/backup"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: previous-release-${{ github.run_id }}
+          path: ${{ runner.temp }}/backup
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publish and verify exact release bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload builds --repo "$GITHUB_REPOSITORY" "$RUNNER_TEMP"/publish/* --clobber
+          mkdir "$RUNNER_TEMP/readback"
+          for asset in "$RUNNER_TEMP"/publish/*; do
+            name=$(basename "$asset")
+            gh release download builds --repo "$GITHUB_REPOSITORY" --pattern "$name" --dir "$RUNNER_TEMP/readback"
+            cmp "$asset" "$RUNNER_TEMP/readback/$name"
+          done
